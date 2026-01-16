@@ -23,7 +23,7 @@ Ensure your server meets the following requirements:
 1.  **Clone the Repository**:
 
     ```bash
-    git clone https://github.com/your-username/your-repo.git /var/www/your-app
+    git clone https://github.com/beniyke/anchor.git /var/www/your-app
     ```
 
 2.  **Install Dependencies**:

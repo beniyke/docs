@@ -49,26 +49,32 @@ The best way to install Anchor is via Git and Composer.
 Clone the application skeleton (the template):
 
 ```bash
-git clone https://github.com/anchor/app my-app
+git clone https://github.com/beniyke/anchor my-app
 cd my-app
 ```
 
 ### Initial Setup
 
-Run the `dock` command to initialize your application. The framework is smart enough to detect a fresh install and will guide you:
+1. **Initialize**: Run the `dock` command to initialize your application:
 
-```bash
-php dock
-```
+   ```bash
+   php dock
+   ```
 
-You will be presented with two choices:
+2. **Environment**: Copy the example environment file and configure your database:
 
-- **Managed (Recommended)**: Installs the framework as a Composer dependency. Perfect for most projects.
-- **Standalone**: Downloads the framework core directly. Best for shared hosting or limited environments.
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Migrations**: Run the core migrations to prepare the database:
+   ```bash
+   php dock migration:run
+   ```
 
 ### Essential System Packages
 
-These core system packages are expected to be installed to ensure your application runs smoothly.
+Now that the foundation is ready, install the core system packages:
 
 ```bash
 # Install Queue package (Background processing)
@@ -107,7 +113,7 @@ DB_PASSWORD=
 
 ### Serve the Application
 
-You can use the built-in development server, which starts both the application server and the queue worker:
+Start the development server, which handles both the application and the background worker:
 
 ```bash
 php dock dev
