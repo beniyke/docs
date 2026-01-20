@@ -13,6 +13,7 @@ Learn more about the [philosophy](introduction.md#philosophy) behind the framewo
 ## Getting Started
 
 - [Introduction](introduction.md) - Overview of the Anchor Framework
+- [Installation](installation.md) - Setting up your application
 - [Architecture](architecture.md) - High-level architectural overview
 - [Developer Internals](internals.md) - Deep-core and framework infrastructure
 - [Directory Structure](directory-structure.md) - Understanding the framework structure

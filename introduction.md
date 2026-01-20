@@ -31,95 +31,13 @@ Together, these elements create a cohesive development experience: **Anchor** pr
 To run Anchor, your server must meet the following requirements:
 
 - **PHP**: >= 8.2
-- **Composer**: Dependency Manager
-- **Database**: MySQL, PostgreSQL, or SQLite
-- **Extensions**:
-  - PDO
-  - Mbstring
-  - OpenSSL
-  - Ctype
-  - JSON
+- **Extensions**: PDO, Mbstring, OpenSSL, Ctype, JSON, BCMath, ZipArchive, cURL.
 
 ## Installation
 
-The best way to install Anchor is via Git and Composer.
+The recommended way to install Anchor is via the **Anchor Skeleton**. This provides a pre-configured template to get you up and running in seconds.
 
-### Create a New Project
-
-Clone the application skeleton (the template):
-
-```bash
-git clone https://github.com/beniyke/anchor my-app
-cd my-app
-```
-
-### Initial Setup
-
-1. **Initialize**: Run the `dock` command to initialize your application:
-
-   ```bash
-   php dock
-   ```
-
-2. **Environment**: Copy the example environment file and configure your database:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Migrations**: Run the core migrations to prepare the database:
-   ```bash
-   php dock migration:run
-   ```
-
-### Essential System Packages
-
-Now that the foundation is ready, install the core system packages:
-
-```bash
-# Install Queue package (Background processing)
-php dock package:install Queue --system
-
-# Install Notify package (Alerts and notifications)
-php dock package:install Notify --system
-
-# Install Debugger (Essential for development)
-php dock package:install Debugger --system
-```
-
-### Environment Configuration
-
-Copy the example environment file and configure your database credentials.
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and update the settings:
-
-```ini
-APP_NAME=AnchorApp
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=localhost:1010
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=anchor_db
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### Serve the Application
-
-Start the development server, which handles both the application and the background worker:
-
-```bash
-php dock dev
-```
-
-Or configure a virtual host in Apache/Nginx pointing to the **project root** directory (where `index.php` is located).
+For detailed instructions on Managed and Standalone installation modes, see the **[Installation Guide](installation.md)**.
 
 ## Key Features
 

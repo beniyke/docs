@@ -20,42 +20,62 @@ Ensure your server meets the following requirements:
 
 ## Installation
 
-1.  **Clone the Repository**:
+### Clone the Skeleton
 
-    ```bash
-    git clone https://github.com/beniyke/anchor.git /var/www/your-app
-    ```
+```bash
+git clone https://github.com/beniyke/anchor-skeleton.git /var/www/your-app
+```
 
-2.  **Install Dependencies**:
+### Hydrate & Install Dependencies
 
-    ```bash
-    cd /var/www/your-app
-    composer install --optimize-autoloader --no-dev
-    ```
+#### For Managed Mode (Composer)
 
-3.  **Install System Packages**:
-    Ensure the queue system package is installed for production.
-    ```bash
-    php dock package:install Queue --system --force
-    ```
+```bash
+cd /var/www/your-app
+composer install --optimize-autoloader --no-dev
+```
+
+#### For Standalone Mode (Portable)
+
+```bash
+cd /var/www/your-app
+php dock
+```
+
+> Select the "Standalone" option when prompted.
+
+### Install System Packages
+
+Ensure essential system packages are installed for production.
+
+```bash
+# Background job processing
+php dock package:install Queue --system --force
+
+# System notifications
+php dock package:install Notify --system --force
+```
 
 ## Configuration
 
-1.  **Environment Variables**:
-    Copy the `.env.example` file to `.env` and configure your production environment variables.
+### Environment Variables
 
-    ```bash
-    cp .env.example .env
-    nano .env
-    ```
+Copy the `.env.example` file to `.env` and configure your production environment variables.
 
-    Ensure `APP_ENV` is set to `production` and `APP_DEBUG` is set to `false`.
+```bash
+cp .env.example .env
+nano .env
+```
 
-2.  **Generate Application Key**:
-    Generate a new application key to ensure session and encryption security.
-    ```bash
-    php dock key:generate
-    ```
+Ensure `APP_ENV` is set to `production` and `APP_DEBUG` is set to `false`.
+
+### Generate Application Key
+
+Generate a new application key to ensure session and encryption security.
+
+```bash
+php dock key:generate
+```
 
 ## Directory Permissions
 
@@ -136,14 +156,17 @@ If you are using Apache, ensure `mod_rewrite` is enabled. You can use the follow
 
 ## Optimization
 
-1.  **Autoloader Optimization**:
-    The `composer install` command with `--optimize-autoloader` already handles this.
+### Autoloader Optimization
 
-2.  **Clear Cache**:
-    Clear any existing application cache.
-    ```bash
-    php dock cache:flush
-    ```
+When using **managed mode** (Composer), the `composer install` command with `--optimize-autoloader` already handles this.
+
+### Clear Cache
+
+Clear any existing application cache.
+
+```bash
+php dock cache:flush
+```
 
 ## Database Migrations
 

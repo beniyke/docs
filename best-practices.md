@@ -132,13 +132,13 @@ While native PHP functions like `file_exists()` or `mkdir()` work, the framework
 ### Available Interfaces
 
 | Interface | Purpose | Common Methods |
-| | | - |
-| `PathResolverInterface` | Resolve framework paths | `basePath()`, `appPath()`, `storagePath()`, `systemPath()` |
-| `FileMetaInterface` | File metadata operations | `exists()`, `isDir()`, `isFile()`, `size()` |
-| `FileReadWriteInterface` | Read/write operations | `get()`, `put()` |
+| --- | --- | --- |
+| `PathResolverInterface` | Resolve framework paths | `basePath()`, `appPath()`, `storagePath()`, `systemPath()`, `configPath()`, `publicPath()` |
+| `FileMetaInterface` | File metadata operations | `exists()`, `isDir()`, `isFile()`, `isReadable()`, `size()`, `chmod()`, `permissions()` |
+| `FileReadWriteInterface` | Read/write operations | `get()`, `put()`, `replace()`, `prepend()`, `append()` |
 | `FileManipulationInterface` | File/directory manipulation | `copy()`, `move()`, `delete()`, `mkdir()` |
 
-### DO: Use Injected Abstractions
+### Use Injected Abstractions
 
 ```php
 <?php
