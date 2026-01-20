@@ -43,10 +43,11 @@ To maintain a single source of truth, we use automated "Runners" that execute be
 
 GitHub Actions partition the monorepo into:
 
-- **`anchor/framework`**: The core `System/` directory.
-- **`anchor/tests`**: The central testing suite.
-- **`anchor/docs`**: The central documentation repository.
-- **`anchor/{package-name}`**: Individual repositories for every package in `packages/`.
+- **`beniyke/framework`**: The core `System/` directory.
+- **`beniyke/tests`**: The central testing suite.
+- **`beniyke/docs`**: The central documentation repository.
+- **`beniyke/anchor-skeleton`**: The official application starter project.
+- **`beniyke/{package-name}`**: Individual repositories for every package in `packages/`.
 
 ## The "Smart Skeleton" Architecture
 
@@ -54,7 +55,7 @@ Anchor provides a unique installation flexibility: **Managed** vs **Portable**.
 
 ### Managed Mode (Composer)
 
-The standard modern PHP approach. `anchor/app` (the skeleton) requires `anchor/framework` via Composer. The `vendor/` directory manages all dependencies.
+The standard modern PHP approach. `beniyke/anchor-skeleton` requires `beniyke/framework` via Composer. The `vendor/` directory manages all dependencies.
 
 ### Portable Mode (Standalone)
 

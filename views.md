@@ -130,7 +130,7 @@ Layouts are stored in `App/Views/Templates/layouts/`:
 
 **`App/src/Tweets/Views/Templates/index.php`**
 
-````php
+```php
 <?php echo $this->extend('app'); ?>
 
 // Or use dot notation for nested layouts:
@@ -151,6 +151,7 @@ Layouts are stored in `App/Views/Templates/layouts/`:
         </div>
     <?php endforeach; ?>
 <?php $this->endSection(); ?>
+```
 
 ### Sections
 
@@ -164,7 +165,7 @@ $this->endSection();
 
 <!-- In your layout -->
 <title><?php echo $this->section('title', 'Default Title'); ?></title>
-````
+```
 
 The `section()` method accepts an optional second argument for a default value if the section is not defined.
 
@@ -211,7 +212,7 @@ In layout:
 
 ### Inc Method
 
-**(for inc/ folder)**
+for `inc/` folder
 
 ```php
 <?php echo $this->inc('navigation', ['active' => 'home']); ?>
@@ -309,22 +310,25 @@ Escapes HTML entities to prevent Cross-Site Scripting (XSS).
 
 #### json
 
-````php
 - **`json(mixed $data)`**: Safely encodes data to JSON for use in JavaScript.
-  ```php
+
+```php
   <script>
       const config = <?php echo $this->json(['api' => '/api/v1']); ?>;
   </script>
-````
+```
 
 #### Navigation & Route Helpers
 
 - **`active(string $path, string $class = 'active', string $default = '')`**: Returns a class string if the current URI matches the path.
+
   ```php
   <li <?php echo $this->active('/dashboard'); ?>>Dashboard</li>
   ```
+
 - **`isRoute(string $name)`**: Checks if the current route matches the given name.
-  ```php
+
+```php
   <?php if ($this->isRoute('login')): ?>
       <!-- Only shown on login page -->
   <?php endif; ?>
@@ -333,24 +337,31 @@ Escapes HTML entities to prevent Cross-Site Scripting (XSS).
 #### Context & Environment Helpers
 
 - **`user()`**: Access the currently authenticated user object.
-  ```php
+
+```php
   Hello, <?php echo $this->user()->name; ?>
-  ```
+```
+
 - **`session(?string $key = null, mixed $default = null)`**: Get session data.
-  ```php
+
+```php
   <?php echo $this->session('flash_message'); ?>
-  ```
+```
+
 - **`config(string $key, mixed $default = null)`**: Access configuration values.
-  ```php
+
+```php
   Site Name: <?php echo $this->config('app.name'); ?>
-  ```
+```
+
 - **`isLocal()`**: Returns `true` if the environment is `local`.
 - **`isProduction()`**: Returns `true` if the environment is `production`.
-  ```php
+
+```php
   <?php if ($this->isLocal()): ?>
       <script src="/dev-tool.js"></script>
   <?php endif; ?>
-  ```
+```
 
 ## Authentication Helpers
 
@@ -421,7 +432,7 @@ Similarly for inline styles:
 
 Stacks allow you to push content to named locations, usually for scripts or styles in your layout.
 
-**In Layout (`app.php`):**
+### In Layout
 
 ```php
 <head>
@@ -433,7 +444,7 @@ Stacks allow you to push content to named locations, usually for scripts or styl
 </body>
 ```
 
-**In View:**
+### In View
 
 ```php
 <?php $this->push('scripts'); ?>
@@ -554,9 +565,9 @@ The `route()` function returns the current or specified route path:
 <?php echo route('account/profile'); ?> // Specified route path
 ```
 
-#### Real-World Example
+### Example
 
-**Layout: `App/Views/Templates/layouts/app.php`**
+**Layout: `App/Views/Templates/layouts/master.php`**
 
 ```php
 <!DOCTYPE html>
@@ -595,7 +606,7 @@ The `route()` function returns the current or specified route path:
 **View: `App/src/Account/Views/Templates/profile.php`**
 
 ```php
-<?php echo $this->extend('app'); ?>
+<?php echo $this->extend('master'); ?>
 
 <?php $this->push('styles'); ?>
     <link rel="stylesheet" href="<?php echo assets('css/profile.css'); ?>">

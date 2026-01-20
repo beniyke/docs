@@ -19,7 +19,7 @@ Use `package:install` when your package needs to:
 - Provide **CLI commands** (automatically discovered)
   **Examples**: Authentication, Queue, Watcher, Payment Gateway, Multi-tenancy
 
-**Installation NOT Required**
+### Installation NOT Required
 
 Your package doesn't need installation if it:
 
@@ -71,37 +71,32 @@ php dock download Pay --install
 php dock download Bridge --branch v2.0
 ```
 
----
-
 ## Installation
 
-### Installing a System Package
-
-System packages are located in the `System/` directory.
+Anchor provides a simple command to install packages. By default, the system will automatically search for the package in both the `packages/` and `System/` directories.
 
 ```bash
-php dock package:install PackageName --system
+php dock package:install PackageName
 ```
 
-**Example**:
+### Explicit Source Flags
+
+While auto-detection works in most cases, you can use these flags to be explicit or if you have name collisions:
+
+| Flag | Description |
+| :--- | :--- |
+| `--packages` | Force installation from the `packages/` directory |
+| `--system` | Force installation from the `System/` directory |
+
+**Examples**:
 
 ```bash
+# Auto-detect (Recommended)
+php dock package:install Shield
+
+# Explicit sources
 php dock package:install Notifications --system
-```
-
-### Installing a Framework Package
-
-Framework packages are located in the `packages/` directory (e.g., Pay, Watcher, Bridge).
-
-```bash
-php dock package:install PackageName --packages
-```
-
-**Example**:
-
-```bash
 php dock package:install Watcher --packages
-
 ```
 
 ### What Happens During Installation?
@@ -119,27 +114,21 @@ php dock package:install Watcher --packages
   - Adds middleware to `App/Config/middleware.php`
 - **Commands**: Package commands are auto-discovered (no copying needed)
 
-> **Automatic Migration Execution**: Unlike earlier versions, `package:install` now **automatically runs** the package's migrations after publishing them. You don't need to manually run `php dock migration:run` unless you want to run additional pending migrations from other sources.
+> **Automatic Migration Execution**
+> `package:install` **automatically runs** the package's migrations after publishing them. You don't need to manually run `php dock migration:run` unless you want to run additional pending migrations from other sources.
 
 ### Complete Installation Workflow
 
-```bash
-# Single command - installs package and runs its migrations automatically
-php dock package:install MyPackage --system
-```
-
-**Example**:
+Since `package:install` handles both file publishing and migrations, a single command is usually all you need:
 
 ```bash
-# Install Watcher package (migrations run automatically)
-php dock package:install Watcher --packages
-
+php dock package:install MyPackage
 ```
 
 ### Installation Statuses
 
 | Status | Description |
-| | - |
+| :--- | :--- |
 | `INSTALLED` | All package files are present and registered |
 | `MISSING_FILES` | Some files are missing (partial/corrupted installation) |
 | `NOT_INSTALLED` | Package has never been installed |
@@ -163,16 +152,13 @@ Selecting `yes` will:
 ### Uninstalling a Package
 
 ```bash
-php dock package:uninstall PackageName --system
-# or
-php dock package:uninstall PackageName --packages
+php dock package:uninstall PackageName
 ```
 
 **Example**:
 
 ```bash
-php dock package:uninstall Watcher --packages
-
+php dock package:uninstall Watcher
 ```
 
 ### Non-Interactive Uninstallation
@@ -196,13 +182,11 @@ php dock package:uninstall Watcher --packages --yes
   - Removes middleware from `App/Config/middleware.php`
 - **Commands**: Package commands are removed automatically when uninstalled
 
-> Uninstalling a package will **automatically delete data** by rolling back migrations. Always backup your database before uninstalling.
-
-> Unlike installation, uninstallation **automatically** handles migration rollback. You don't need to manually run `migration:rollback`.
+> Uninstalling a package will **automatically delete data** by rolling back migrations. Always backup your database before uninstalling. You don't need to manually run `migration:rollback`.
 
 ## Creating Packages
 
-**Minimum Package Structure (For Packages Needing Installation)**
+### Minimum Package Structure (For Packages Needing Installation)
 
 > This section applies only to packages that need installation. Standalone library packages don't need this structure - they can just be regular PHP classes.
 
@@ -218,7 +202,7 @@ A package that needs installation requires at minimum:
 
 **If your package doesn't have a `setup.php`, it doesn't use the installation system.**
 
-### Basic Package Example
+#### Basic Package Example
 
 ```
 System/MyPackage/
@@ -255,14 +239,14 @@ declare(strict_types=1);
 
 return [
     'providers' => [
-        \MyPackage\Providers\MyPackageServiceProvider::class,
+        MyPackage\Providers\MyPackageServiceProvider::class,
     ],
     'middleware' => [
         'web' => [
-            \MyPackage\Middleware\MyPackageMiddleware::class,
+            MyPackage\Middleware\MyPackageMiddleware::class,
         ],
         'api' => [
-            \MyPackage\Middleware\ApiMiddleware::class,
+            MyPackage\Middleware\ApiMiddleware::class,
         ],
     ],
 ];
@@ -385,23 +369,22 @@ class MyPackageServiceProvider extends ServiceProvider
 #### Step 7: Install Your Package
 
 ```bash
-php dock package:install MyPackage --system
+php dock package:install MyPackage
 ```
 
-#### Step 8: Run Migrations (If Package Has Migrations)
+This will automatically:
+
+- Publish your configuration.
+- Register your Service Provider and Middleware.
+- **Run your migrations** to create the `mypackage_items` table.
+
+#### Step 8: Verify Installation
+
+You can now use your package immediately! Try running your sync command:
 
 ```bash
-php dock migration:run
+php dock mypackage:sync
 ```
-
-This will create the database tables defined in your package:
-
-```
-Migrating: 2025_01_01_000000_create_mypackage_table
-Migrated:  2025_01_01_000000_create_mypackage_table (0.05s)
-```
-
-Your package is now fully installed and ready to use!
 
 ## Package Structure
 
@@ -453,7 +436,7 @@ System/FullPackage/
 ### File Naming Conventions
 
 | Type | Convention | Example |
-| -- | -- | |
+| :--- | :--- | :--- |
 | **Config** | `packagename.php` | `watcher.php`, `queue.php` |
 | **Migration** | `YYYY_MM_DD_HHMMSS_description.php` | `2025_01_01_120000_create_users_table.php` |
 | **Command** | `PascalCaseCommand.php` | `SyncDataCommand.php` |
@@ -486,23 +469,23 @@ return [
 ];
 ```
 
-#### Examples
+### Examples
 
-**Package with Only Providers**
+#### Package with Only Providers
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \MyPackage\Providers\MyServiceProvider::class,
-        \MyPackage\Providers\MyEventServiceProvider::class,
+        MyPackage\Providers\MyServiceProvider::class,
+        MyPackage\Providers\MyEventServiceProvider::class,
     ],
     'middleware' => [],
 ];
 ```
 
-**Package with Only Middleware**
+#### Package with Only Middleware
 
 ```php
 <?php
@@ -511,48 +494,48 @@ return [
     'providers' => [],
     'middleware' => [
         'web' => [
-            \MyPackage\Middleware\WebGuardMiddleware::class,
+            MyPackage\Middleware\WebGuardMiddleware::class,
         ],
     ],
 ];
 ```
 
-**Package with Both (Common Pattern)**
+#### Package with Both (Common Pattern)
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \Watcher\Providers\WatcherServiceProvider::class,
+        Watcher\Providers\WatcherServiceProvider::class,
     ],
     'middleware' => [
         'web' => [
-            \Watcher\Middleware\WatcherMiddleware::class,
+            Watcher\Middleware\WatcherMiddleware::class,
         ],
     ],
 ];
 ```
 
-**API-Focused Package**
+#### API-Focused Package
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \ApiAuth\Providers\ApiServiceProvider::class,
+        ApiAuth\Providers\ApiServiceProvider::class,
     ],
     'middleware' => [
         'api' => [
-            \ApiAuth\Middleware\ApiKeyMiddleware::class,
-            \ApiAuth\Middleware\RateLimitMiddleware::class,
+            ApiAuth\Middleware\ApiKeyMiddleware::class,
+            ApiAuth\Middleware\RateLimitMiddleware::class,
         ],
     ],
 ];
 ```
 
-**Empty Setup (Config/Migrations Only Package)**
+#### Empty Setup (Config/Migrations Only Package)
 
 If your package only provides configs or migrations without any services:
 
@@ -567,11 +550,11 @@ return [
 
 ## Common Use Cases
 
-**Analytics Package**
+### Analytics Package
 
 Track user events and analytics
 
-**Structure**:
+#### Structure
 
 ```
 System/Analytics/
@@ -587,35 +570,34 @@ System/Analytics/
     └── TrackAnalyticsMiddleware.php
 ```
 
-**setup.php**:
+#### setup.php
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \Analytics\Providers\AnalyticsServiceProvider::class,
+        Analytics\Providers\AnalyticsServiceProvider::class,
     ],
     'middleware' => [
         'web' => [
-            \Analytics\Middleware\TrackAnalyticsMiddleware::class,
+            Analytics\Middleware\TrackAnalyticsMiddleware::class,
         ],
     ],
 ];
 ```
 
-**Installation**:
+#### Installation
 
 ```bash
-php dock package:install Analytics --packages
-
+php dock package:install Analytics
 ```
 
-**Payment Gateway Package**
+### Payment Gateway Package
 
 Integrate Stripe payment processing
 
-**Structure**:
+#### Structure
 
 ```
 System/PaymentGateway/
@@ -633,20 +615,20 @@ System/PaymentGateway/
     └── PaymentServiceProvider.php
 ```
 
-**setup.php**:
+#### setup.php
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \PaymentGateway\Providers\PaymentServiceProvider::class,
+        PaymentGateway\Providers\PaymentServiceProvider::class,
     ],
     'middleware' => [],
 ];
 ```
 
-**Config (`payment.php`)**:
+#### Config (`payment.php`)
 
 ```php
 <?php
@@ -662,25 +644,24 @@ return [
 ];
 ```
 
-**Installation**:
+#### Installation
 
 ```bash
-php dock package:install PaymentGateway --packages
-
+php dock package:install PaymentGateway
 ```
 
-**Available Commands After Install**:
+#### Available Commands After Install
 
 ```bash
 php dock payments:sync
 php dock payments:process-refunds
 ```
 
-**Custom Authentication Package**
+### Custom Authentication Package
 
 Custom multi-factor authentication
 
-**Structure**:
+#### Structure
 
 ```
 packages/MFAAuth/
@@ -698,38 +679,38 @@ packages/MFAAuth/
     └── MFAEventServiceProvider.php
 ```
 
-**setup.php**:
+#### setup.php
 
 ```php
 <?php
 
 return [
     'providers' => [
-        \MFAAuth\Providers\MFAServiceProvider::class,
-        \MFAAuth\Providers\MFAEventServiceProvider::class,
+        MFAAuth\Providers\MFAServiceProvider::class,
+        MFAAuth\Providers\MFAEventServiceProvider::class,
     ],
     'middleware' => [
         'web' => [
-            \MFAAuth\Middleware\RequireMFAMiddleware::class,
+            MFAAuth\Middleware\RequireMFAMiddleware::class,
         ],
         'api' => [
-            \MFAAuth\Middleware\ValidateMFATokenMiddleware::class,
+            MFAAuth\Middleware\ValidateMFATokenMiddleware::class,
         ],
     ],
 ];
 ```
 
-**Installation**:
+#### Installation
 
 ```bash
-php dock package:install MFAAuth --packages
+php dock package:install MFAAuth
 ```
 
-**Email Marketing Package**
+### Email Marketing Package
 
 SaaS email marketing automation
 
-**Structure**:
+#### Structure
 
 ```
 packages/EmailMarketing/
@@ -750,34 +731,35 @@ packages/EmailMarketing/
     └── TrackEmailOpenMiddleware.php
 ```
 
-**setup.php**:
+#### setup.php
 
 ```php
 <?php
 
 return [
-    'providers' => [\EmailMarketing\Providers\EmailMarketingServiceProvider::class],
+    'providers' => [
+        EmailMarketing\Providers\EmailMarketingServiceProvider::class
+        ],
     'middleware' => [
         'web' => [
-            \EmailMarketing\Middleware\TrackEmailOpenMiddleware::class,
+            EmailMarketing\Middleware\TrackEmailOpenMiddleware::class,
         ],
     ],
 ];
 ```
 
-**Installation & Usage**:
+#### Installation & Usage
 
 ```bash
-php dock package:install EmailMarketing --packages
-php dock migration:run
+php dock package:install EmailMarketing
 php dock campaign:send --campaign=newsletter
 ```
 
-**File Storage Package**
+### File Storage Package
 
 Multi-driver cloud storage (no migrations needed)
 
-**Structure**:
+#### Structure
 
 ```
 System/CloudStorage/
@@ -788,24 +770,24 @@ System/CloudStorage/
     └── StorageServiceProvider.php
 ```
 
-**Installation**:
+#### Installation
 
 ```bash
-php dock package:install CloudStorage --system
+php dock package:install CloudStorage
 ```
 
-**Usage**:
+#### Usage
 
 ```php
 $storage = resolve(StorageManager::class);
 $storage->disk('s3')->put('file.pdf', $contents);
 ```
 
-**Standalone Utility Package (NO Installation Required)**
+### Standalone Utility Package (NO Installation Required)
 
 PDF generation library
 
-**Structure**:
+#### Structure
 
 ```
 System/PdfGenerator/
@@ -829,7 +811,7 @@ $pdf->addPage()
     ->save('output.pdf');
 ```
 
-**Why no installation needed?**
+#### Why no installation needed?
 
 - No service providers to register
 - No middleware to add
@@ -837,7 +819,7 @@ $pdf->addPage()
 - No CLI commands
 - Just pure utility classes used directly in your code
 
-**Another Example - String Utilities**:
+### Another Example - String Utilities
 
 ```
 System/StringUtils/
@@ -846,7 +828,7 @@ System/StringUtils/
 └── Slugify.php
 ```
 
-**Usage**:
+#### Usage
 
 ```php
 use StringUtils\Slugify;
@@ -858,7 +840,7 @@ These packages work like any standard PHP library - just use the classes directl
 
 ## Best Practices
 
-**Namespace Your Package**
+#### Namespace Your Package
 
 Always use a unique namespace for your package to avoid conflicts:
 
@@ -866,7 +848,7 @@ Always use a unique namespace for your package to avoid conflicts:
 namespace MyCompany\MyPackage\Providers;
 ```
 
-**Use Environment Variables for Secrets**
+#### Use Environment Variables for Secrets
 
 Never hardcode API keys or secrets in config files:
 
@@ -878,7 +860,7 @@ Never hardcode API keys or secrets in config files:
 'api_key' => env('MYPACKAGE_API_KEY'),
 ```
 
-**Always Implement Migration `down()` Methods**
+#### Always Implement Migration `down()` Methods
 
 Ensure migrations can be rolled back during uninstallation:
 
@@ -889,7 +871,7 @@ public function down(): void
 }
 ```
 
-**Version Your Migrations**
+#### Version Your Migrations
 
 Use timestamps in migration filenames to avoid conflicts:
 
@@ -898,36 +880,36 @@ Use timestamps in migration filenames to avoid conflicts:
 2025_01_15_120100_add_email_to_users.php
 ```
 
-**Test Before Distribution**
+### Test Before Distribution
 
 Always test the full installation/uninstallation cycle:
 
 ```bash
 # Test install
-php dock package:install MyPackage --system
+php dock package:install MyPackage
 
 # Test commands work
 php dock mypackage:test
 
 # Test uninstall
-php dock package:uninstall MyPackage --system
+php dock package:uninstall MyPackage
 ```
 
 ## Troubleshooting
 
-**Package Not Found**
+### Package Not Found
 
 **Error**: `Package not found at: /path/to/package`
 
-**Solution**: Verify the package directory exists and you're using the correct flag (`--system` or `--packages`).
+**Solution**: Verify the package directory exists. The system searches both `packages/` and `System/` automatically.
 
-**Middleware Not Registered**
+### Middleware Not Registered
 
 **Issue**: Middleware not appearing in routes.
 
 **Solution**: Check that `setup.php` has the correct middleware group (`web` or `api`).
 
-**Command Not Available After Install**
+### Command Not Available After Install
 
 **Issue**: Command doesn't appear in `php dock` list.
 
@@ -938,17 +920,17 @@ php dock package:uninstall MyPackage --system
 - Check class namespace matches the directory structure
 - Clear any PHP opcache: `php dock cache:clear` (if available)
 
-**Partial Installation**
+### Partial Installation
 
 **Issue**: Some files installed, others missing.
 
 **Solution**: Run the installer again. It will auto-detect and prompt for repair:
 
 ```bash
-php dock package:install MyPackage --system
+php dock package:install MyPackage
 ```
 
-**File Copy Failures**
+### File Copy Failures
 
 **Error**: `Failed to copy file: /source/path to /dest/path`
 

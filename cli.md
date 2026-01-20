@@ -156,8 +156,8 @@ You can configure the playground to automatically import your most-used classes 
 **Execution Mode**
 You can run the playground in two modes:
 
-1.  **Interactive**: (Default) Opens a shell for live interaction.
-2.  **Scripted**: Pass a filename from the `_playground/` directory (e.g., `php dock playground test.php`) to execute complex testing scripts within the full application context.
+1. **Interactive**: (Default) Opens a shell for live interaction.
+2. **Scripted**: Pass a filename from the `_playground/` directory (e.g., `php dock playground test.php`) to execute complex testing scripts within the full application context.
 
 **Configuration:**
 
@@ -441,7 +441,7 @@ php dock task:create ProcessOrder Order
 php dock task:delete ProcessOrder Order
 ```
 
-#### Queue Management
+#### Queue Control
 
 ```bash
 # Pause queue processing (stops processing jobs, keeps daemon alive)
@@ -621,7 +621,10 @@ See the [Testing](testing.md) documentation for comprehensive testing guide.
 
 ```bash
 # Downloads and installs/updates the framework core files
-php dock framework:hydrate
+php dock anchor:hydrate
+
+# Intelligently updates the framework core
+php dock anchor:update
 
 # Encrypt an environment file for version control
 php dock env:encrypt
@@ -851,20 +854,20 @@ php dock queue:check
 
 ## Command Categories
 
-| Category              | Commands                      | Purpose                        |
-| --------------------- | ----------------------------- | ------------------------------ |
-| **Development**       | dev, playground, key:generate | Development tools              |
-| **Database**          | database:\*                   | Database management            |
-| **Migration**         | migration:\*                  | Schema migrations              |
-| **Seeder**            | seeder:\*                     | Data seeding                   |
-| **Queue**             | queue:\*                      | Queue management               |
-| **Worker**            | worker:\*                     | Worker daemon control          |
-| **Cache**             | cache:flush                   | Cache management               |
-| **Generators**        | \*:create                     | Code generation                |
-| **Droppers**          | \*:delete                     | Code deletion                  |
-| **Code Quality**      | inspect, sail                 | Analysis & Production Checks   |
-| **System & Packages** | download, hydrate             | Framework & Package management |
-| **Files**             | file:_, directory:_           | File operations                |
+| Category              | Commands                                | Purpose                        |
+| --------------------- | --------------------------------------- | ------------------------------ |
+| **Development**       | dev, playground, key:generate           | Development tools              |
+| **Database**          | database:\*                             | Database management            |
+| **Migration**         | migration:\*                            | Schema migrations              |
+| **Seeder**            | seeder:\*                               | Data seeding                   |
+| **Queue**             | queue:\*                                | Queue management               |
+| **Worker**            | worker:\*                               | Worker daemon control          |
+| **Cache**             | cache:flush                             | Cache management               |
+| **Generators**        | \*:create                               | Code generation                |
+| **Droppers**          | \*:delete                               | Code deletion                  |
+| **Code Quality**      | inspect, sail                           | Analysis & Production Checks   |
+| **System & Packages** | anchor:hydrate, anchor:update, download | Framework & Package management |
+| **Files**             | file:_, directory:_                     | File operations                |
 
 ## Tips
 

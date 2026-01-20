@@ -6,11 +6,9 @@ The `Helpers\Http\Response` class helps you build and send HTTP responses with v
 
 In a controller, you can return strings, arrays, or Response objects.
 
-````php
-#### body
 ```php
 body(string $content): self
-````
+```
 
 Sets the raw content body of the response.
 

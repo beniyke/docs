@@ -60,7 +60,7 @@ You can quickly generate a ViewModel using the `dock` CLI:
 php dock view:create-model <ModelName> <ModuleName>
 ```
 
-**Example:**
+### Example
 
 ```bash
 php dock view:create-model Login Auth
@@ -68,7 +68,7 @@ php dock view:create-model Login Auth
 
 This will create `App/src/Auth/Views/Models/LoginViewModel.php`.
 
-**Form ViewModel**
+### Form ViewModel
 
 Use the `--form` (or `-f`) option to generate a ViewModel pre-populated with form helper methods:
 
@@ -91,7 +91,7 @@ public function getFieldValue(string $field): string
 
 ## Usage
 
-**In the Controller**
+### In the Controller
 
 You can inject the ViewModel directly into your controller method:
 
@@ -113,7 +113,7 @@ Or manually resolve it from the container:
 // ...
 ```
 
-**In the View**
+### In the View
 
 Use the methods provided by the ViewModel.
 
