@@ -1,6 +1,6 @@
 # Dock Command Runner
 
-A fluent, production-ready API for executing dock commands programmatically with comprehensive error handling and edge case coverage.
+A fluent API for executing dock commands programmatically with comprehensive error handling and edge case coverage.
 
 ## Installation
 
@@ -12,6 +12,7 @@ The `DockCommand` class is available globally via the `dock()` helper function.
 
 ```php
 use Cli\Helpers\DockCommand;
+use Helpers\Log;
 
 // Using static make method
 $result = DockCommand::make('migration:status')->run();
@@ -137,7 +138,7 @@ if ($result->successful()) {
 $result = dock('migration:run')->runQuietly();
 
 if ($result->failed()) {
-    logger()->error('Migration failed', [
+    Log::error('Migration failed', [
         'error' => $result->getError(),
         'exit_code' => $result->getExitCode()
     ]);
@@ -165,7 +166,7 @@ $process->wait();
 
 ## Result Handling
 
-#### CommandResult Methods
+### Handling the Result
 
 ```php
 $result = dock('test')->run();
@@ -193,12 +194,12 @@ $result->throw(); // Throws RuntimeException if failed
 dock('migration:run')
     ->run()
     ->onSuccess(function($result) {
-        logger()->info('Migration successful', [
+        Log::info('Migration successful', [
             'time' => $result->getExecutionTime()
         ]);
     })
     ->onFailure(function($result) {
-        logger()->error('Migration failed', [
+        Log::error('Migration failed', [
             'error' => $result->getError()
         ]);
     });
@@ -240,11 +241,11 @@ function installPackage(string $package, bool $isSystem = false): bool
         ->run();
 
     if ($result->successful()) {
-        logger()->info("Package {$package} installed successfully");
+        Log::info("Package {$package} installed successfully");
         return true;
     }
 
-    logger()->error("Failed to install {$package}", [
+    Log::error("Failed to install {$package}", [
         'error' => $result->getError()
     ]);
 
@@ -309,7 +310,7 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
         // Run asynchronously
         $process = $command->runAsync();
 
-        logger()->info("Queue worker started", [
+        Log::info("Queue worker started", [
             'identifier' => $identifier,
             'pid' => $process->getPid()
         ]);
@@ -354,7 +355,7 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
 5. **Log command execution:**
    ```php
    $result = dock('command')->run();
-   logger()->info('Command executed', [
+   Log::info('Command executed', [
        'command' => $result->getCommandLine(),
        'time' => $result->getExecutionTime(),
        'success' => $result->successful()
@@ -379,14 +380,14 @@ try {
 
     if ($result->failed()) {
         // Handle graceful failure
-        logger()->error('Migration failed', [
+        Log::error('Migration failed', [
             'error' => $result->getError(),
             'exit_code' => $result->getExitCode()
         ]);
     }
 } catch (RuntimeException $e) {
     // Handle catastrophic failure
-    logger()->critical('Command execution failed', [
+    Log::critical('Command execution failed', [
         'exception' => $e->getMessage()
     ]);
 }

@@ -94,9 +94,9 @@ Anchor supports "Zero-Disk" security by decrypting your `.env.encrypted` file di
 
 To use runtime decryption:
 
-1. Ensure your `.env.encrypted` is present in the root directory.
-2. Ensure you have NO `.env` file present (or it will take precedence).
-3. Set your decryption key as a system environment variable: `ANCHOR_ENV_ENCRYPTION_KEY`.
+- Ensure your `.env.encrypted` is present in the root directory.
+- Ensure you have NO `.env` file present (or it will take precedence).
+- Set your decryption key as a system environment variable: `ANCHOR_ENV_ENCRYPTION_KEY`.
 
 Anchor will automatically detect the encrypted file and use the key to load your variables.
 
@@ -116,25 +116,27 @@ Configuration files are located in `App/Config/` and return arrays of settings.
 
 - **api.php** - API-specific settings
 - **app.php** - Application branding and assets
+- **auth.php** - Authentication guards and user sources
 - **cache.php** - Cache drivers and settings
 - **command.php** - CLI command settings
 - **cors.php** - Cross-Origin Resource Sharing settings
 - **database.php** - Database connections and settings
 - **default.php** - Core settings (debug, env, session, csrf, auth)
 - **email_validation.php** - Email validation rules
+- **filesystems.php** - Filesystem disks and drivers
 - **firewall.php** - Security and firewall rules
 - **functions.php** - Custom functions
 - **image.php** - Image processing settings
 - **mail.php** - Email configuration (SMTP, drivers)
-- **menu.php** - Navigation menu configuration
 - **middleware.php** - Global and route middleware registry
+- **permissions.php** - System permission registry
 - **playground.php** - REPL/Playground configuration
 - **providers.php** - Service provider registration
 - **route.php** - Routes, groups, and URL settings
 
 ## Configuration Functions
 
-#### config
+### config
 
 ```php
 config(string $key, mixed $default = null): mixed
@@ -179,7 +181,7 @@ class MyService
     public function doSomething()
     {
         $appName = $this->config->get('app.name');
-        $debug = $this->config->get('app.debug');
+        $debug = $this->config->get('debug');
     }
 }
 ```
@@ -192,7 +194,7 @@ class MyService
     public function doSomething()
     {
         $appName = config('app.name');
-        $debug = config('app.debug');
+        $debug = config('debug');
     }
 }
 ```
@@ -259,7 +261,7 @@ class EmailService
 ```php
 public function handle(Request $request, Response $response, Closure $next): mixed
 {
-    if (config('app.debug')) {
+    if (config('debug')) {
         // Debug mode logic
     }
 

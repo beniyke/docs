@@ -24,7 +24,7 @@ php dock package:install Support --packages
 
 This will automatically:
 
-- Run database migrations for `support_*` tables.
+- Run the migration for Support tables.
 - Register the `SupportServiceProvider`.
 - Publish the configuration file.
 
@@ -148,9 +148,9 @@ $ticket->reopen();
 
 ## Use Case Walkthrough
 
-#### Scenario: Customer Support Workflow
+### Customer Support Workflow
 
-**Customer Creates Ticket**
+#### Customer Creates Ticket
 
 ```php
 // SupportController.php
@@ -170,7 +170,7 @@ public function store(): Response
 }
 ```
 
-**Agent Responds & Assigns**
+#### Agent Responds & Assigns
 
 ```php
 // AgentController.php
@@ -248,7 +248,7 @@ $performance = Analytics::getAgentPerformance(10);
 
 ## Use Cases
 
-#### Enterprise SLA Escalation
+### Enterprise SLA Escalation
 
 For high-value accounts, any ticket marked as "Urgent" must be escalated to a senior engineer if not responded to within 60 minutes.
 
@@ -258,6 +258,7 @@ For high-value accounts, any ticket marked as "Urgent" must be escalated to a se
 use Support\Support;
 use Support\Enums\TicketPriority;
 use Support\Events\TicketCreated;
+use Mail\Mail;
 
 // SupportServiceProvider or dedicated Listener
 public function handleTicketEscalation(TicketCreated $event)
@@ -266,8 +267,16 @@ public function handleTicketEscalation(TicketCreated $event)
 
     // Use the fluent model helper for better DX
     if ($ticket->isUrgent()) {
-        // Ally Integration: Dispatch urgent notification
-        Notification::send($onCallTeam, new UrgentTicketAlert($ticket));
+        // Dispatch urgent notification to the on-call team
+        Mail::send(new UrgentTicketAlert(Data::make([
+            'recipient_email' => 'oncall@example.com',
+            'recipient_name' => 'On-Call Team',
+            'subject' => $ticket->subject,
+            'refid' => $ticket->refid,
+            'customer_name' => $ticket->user->name,
+            'description' => $ticket->description,
+            'manage_url' => "admin/support/tickets/{$ticket->refid}"
+        ])));
 
         // Audit Integration: Log the escalation event
         Audit::make()
@@ -279,7 +288,7 @@ public function handleTicketEscalation(TicketCreated $event)
 }
 ```
 
-#### Sample Data (JSON)
+### Sample Data (JSON)
 
 State of an urgent ticket in the system:
 
@@ -297,25 +306,27 @@ State of an urgent ticket in the system:
 }
 ```
 
-## Package Integrations
+### Email Notifications
 
-### Ally Package (Notifications)
-
-Support integrates natively with `Ally`. Every ticket event can trigger multi-channel alerts.
+The Support package provides built-in email alerts for key events. These notifications handle their own delivery logic using the system's `Mail` infrastructure.
 
 ```php
-use Ally\Ally; // Notification system facade
-use Support\Events\TicketReplied;
+use Support\Notifications\TicketRepliedNotification;
+use Mail\Mail;
 
-// End-to-End: Notifying a user of an agent reply
-public function handleReply(TicketReplied $event)
+// Notifying a user of an agent reply
+public function handleReply($ticket, $reply)
 {
-    $ticket = $event->ticket;
-    $reply = $event->reply;
-
-    // Send email via Ally if the reply isn't internal
+    // Send email if the reply isn't internal
     if (!$reply->is_internal) {
-        Notification::send($ticket->user, new TicketRepliedNotification($ticket, $reply));
+        Mail::send(new TicketRepliedNotification(Data::make([
+            'name' => $ticket->user->name,
+            'email' => $ticket->user->email,
+            'subject' => $ticket->subject,
+            'refid' => $ticket->refid,
+            'reply_message' => $reply->message,
+            'ticket_url' => "support/tickets/{$ticket->refid}"
+        ])));
     }
 }
 ```

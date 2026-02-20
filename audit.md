@@ -23,7 +23,7 @@ php dock package:install Audit --packages
 
 This will automatically:
 
-- Run database migrations for the `audit_*` table.
+- Run the migration for Audit tables.
 - Register the `AuditServiceProvider`.
 - Publish the configuration file.
 
@@ -126,7 +126,7 @@ $activeUsers = $analytics->getTopUsers(5);
 
 ## Use Cases
 
-#### High-Security Document Signing
+### High-Security Document Signing
 
 In a legal application, every time a document is signed, we need a tamper-proof record of the user, their IP, and the document version.
 
@@ -208,6 +208,28 @@ What is actually stored in the `audit_log` table:
 | `old_values` | `array`  | State of attributes before the change. |
 | `new_values` | `array`  | State of attributes after the change.  |
 | `user_ip`    | `string` | Originating IP address of the action.  |
+ 
+## Automation
+ 
+The Audit package includes an automated cleanup task that is registered in the framework scheduler. This ensures logs are purged based on your retention configuration.
+ 
+```php
+// packages/Audit/Schedules/AuditCleanupSchedule.php
+namespace Audit\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class AuditCleanupSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('audit:cleanup')
+            ->weekly();
+    }
+}
+```
 
 ## Troubleshooting
 

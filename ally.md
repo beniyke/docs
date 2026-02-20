@@ -24,7 +24,7 @@ php dock package:install Ally --packages
 
 This will automatically:
 
-- Run database migrations for `ally_*` and related tables.
+- Run the migration for Ally tables.
 - Register the `AllyServiceProvider`.
 - Publish the configuration file.
 
@@ -158,7 +158,7 @@ if (Ally::provision($reseller, 200, 'Issue Pro License')) {
 
 Ally is often the core of a "Channel Sales" strategy where your application is sold by third-party partners.
 
-#### Tier-Based Pricing & Profit Margins
+### Tier-Based Pricing & Profit Margins
 
 In this scenario, we use the `calculateTierCost()` helper to determine the discounted rate.
 
@@ -175,7 +175,7 @@ if (Ally::provision($reseller, $cost)) {
 }
 ```
 
-#### Bulk Client Provisioning
+### Bulk Client Provisioning
 
 Resellers often onboard multiple clients at once. Ally manages the ledger and ensures the partner has sufficient funds for the entire operation.
 
@@ -202,7 +202,7 @@ foreach ($clients as $data) {
 }
 ```
 
-#### Low-Credit Health Monitoring & Automation
+### Low-Credit Health Monitoring & Automation
 
 The Ally package automatically monitors credit health. When `Ally::provision()` is called and the balance falls below the threshold defined in `App/Config/ally.php`, a `LowCreditEvent` is dispatched.
 
@@ -215,11 +215,12 @@ You can listen to this event to automate actions, such as suspending the reselle
 ```php
 // In a ServiceProvider or Event Listener
 use Core\Event;
+use Helpers\Log;
 use Ally\Events\LowCreditEvent;
 
 Event::listen(LowCreditEvent::class, function (LowCreditEvent $event) {
     // 1. Log the event for admin review
-    logger('ally.log')->info("Low credit warning for {$event->reseller->company_name}: {$event->balance}");
+    Log::channel('ally')->info("Low credit warning for {$event->reseller->company_name}: {$event->balance}");
 
     // 2. Custom Automation: Pause high-value provisioning
     $event->reseller->updateMetadata('hold_provisioning', true);
@@ -229,7 +230,7 @@ Event::listen(LowCreditEvent::class, function (LowCreditEvent $event) {
 - **Reseller Experience**: Receives an email (via `LowCreditNotification`) alerting them to top up.
 - **Automation**: Your custom listener can preemptively pause services until the balance is restored.
 
-#### Monthly Partner Performance Report
+### Monthly Partner Performance Report
 
 You can use the Analytics Service to generate end-of-month reports for your admin dashboard. This helps identifying high-performing partners who might be eligible for a tier upgrade.
 
@@ -254,7 +255,7 @@ public function monthlyReport()
     foreach ($leaders as $partner) {
         if ($partner['acquisitions'] > 100 && $partner['tier'] !== ResellerTier::PLATINUM->value) {
             // Suggest upgrade
-            logger('ally.log')->info("Partner eligible for upgrade: {$partner['company']}");
+            Log::channel('ally')->info("Partner eligible for upgrade: {$partner['company']}");
         }
     }
 
@@ -387,6 +388,10 @@ $outstandingCredits = Ally::analytics()->totalCreditsDistributed();
 // Returns (int): 2500000
 ```
 
+## Automation
+
+The Ally package includes automated credit monitoring via the `AllySchedule` class. It runs the `ally:check-credits` command daily to notify partners near their threshold.
+
 ## Security & Best Practices
 
 - **Strict Wallet Modification**: The `addCredits()` method should never be exposed to public-facing reseller routes. It is exclusively for administrative or payment-webhook use.
@@ -418,7 +423,7 @@ Yes. You can use **Refer** to acquire new partners (e.g., refer a friend to beco
 
 In this workflow, an existing partner refers a new user who then becomes a sub-reseller.
 
-**1. Generate Invite Link**
+**Generate Invite Link**
 Existing partners share a `Refer` tracked link.
 
 ```php
@@ -426,7 +431,7 @@ $link = Refer::link(auth()->user(), 'become-partner');
 // https://app.com/register?ref=BEN123
 ```
 
-**2. Handle Registration**
+**Handle Registration**
 When the new user registers, capture the referral code.
 
 ```php
@@ -450,7 +455,7 @@ public function register() {
 }
 ```
 
-**3. Reward the Referrer (Optional)**
+**Reward the Referrer (Optional)**
 You can use the `ReferralCompleted` event to give the referrer 1000 free credits.
 
 ```php

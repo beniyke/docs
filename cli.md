@@ -41,6 +41,11 @@ php dock help migration:run
 # Start PHP server and worker with auto-restart on .env changes
 php dock dev
 
+# Start server only (skips worker and queue checks)
+php dock dev --server-only
+# or
+php dock dev -s
+
 # Interactive playground (REPL) for testing and debugging
 php dock playground
 
@@ -63,6 +68,10 @@ The `dev` command is a high-level orchestrator that prepares your local developm
 - **Process Management**: Spawns two persistent background processes:
   - **Built-in Server**: Runs your application at the address defined in `APP_HOST`.
   - **Worker**: Starts the queue worker daemon (`php dock worker:start`).
+
+**Options:**
+
+- `-s, --server-only`: Runs the built-in server and watcher but **skips** starting the worker process. It also bypasses queue-related readiness checks, making it ideal for frontend development or environments where queues aren't yet configured.
 
 **Auto-Restart Behavior:**
 The command includes a built-in **File Watcher** that monitors your `.env` file for changes. If you update a configuration variable, the `dev` command will:
@@ -125,7 +134,7 @@ table('user')->count()
 table('user')->where('active', 1)->get()
 
 // Check container bindings
-container()->has('Database\\Connection')
+container()->has('Database\Connection')
 
 // View configuration
 config('app.name')
@@ -249,6 +258,9 @@ php dock queue:check
 # Run queued jobs
 php dock queue:run
 
+# Run scheduled tasks
+php dock schedule:run
+
 # Flush jobs by status
 php dock queue:flush
 ```
@@ -283,19 +295,19 @@ php dock cache:flush [namespace] [key]
 
 Most generators require a **Module Name** as the second argument.
 
-> Many commands automatically append suffixes to the names you provide:
->
-> - `controller:create` appends `Controller`
-> - `service:create` appends `Service`
-> - `action:create` appends `Action`
-> - `request:create` appends `Request`
-> - `task:create` appends `Task`
-> - `*-notification:create` appends `{Type}Notification`
-> - `validation:create` appends `{Type}RequestValidation`
->
+Many commands automatically append suffixes to the names you provide:
+
+- `controller:create` appends `Controller`
+- `service:create` appends `Service`
+- `action:create` appends `Action`
+- `request:create` appends `Request`
+- `task:create` appends `Task`
+- `*-notification:create` appends `{Type}Notification`
+- `validation:create` appends `{Type}RequestValidation`
+
 > For example, `php dock controller:create Tweet Tweets` creates `TweetController`, not `Tweet`.
 
-#### Module
+### Module
 
 ```bash
 # Create a new module
@@ -306,7 +318,7 @@ php dock module:create Tweet
 php dock module:delete Tweet
 ```
 
-#### Controller
+### Controller
 
 ```bash
 # Create a controller (automatically appends 'Controller')
@@ -318,7 +330,7 @@ php dock controller:create Tweet Tweet
 php dock controller:delete Tweet Tweet
 ```
 
-#### Model
+### Model
 
 ```bash
 # Create a model
@@ -328,7 +340,7 @@ php dock model:create Tweet Tweet
 php dock model:delete Tweet Tweet
 ```
 
-#### Service
+### Service
 
 ```bash
 # Create a service (automatically appends 'Service')
@@ -339,7 +351,7 @@ php dock service:create Tweet Tweet
 php dock service:delete Tweet Tweet
 ```
 
-#### Action
+### Action
 
 ```bash
 # Create an action (automatically appends 'Action')
@@ -350,7 +362,7 @@ php dock action:create CreateTweet Tweet
 php dock action:delete CreateTweet Tweet
 ```
 
-#### Request
+### Request
 
 ```bash
 # Create a request DTO (automatically appends 'Request')
@@ -361,7 +373,7 @@ php dock request:create Login Auth
 php dock request:delete Login Auth
 ```
 
-#### Request Validation
+### Request Validation
 
 ```bash
 # Create form validation (--type is required)
@@ -388,7 +400,7 @@ php dock validation:delete Login,Signup Auth --type=form
 php dock validation:create Login Auth -t form
 ```
 
-#### View Components
+### View Components
 
 ```bash
 # Create view model
@@ -410,7 +422,7 @@ php dock view:delete-template index Tweet
 php dock view:delete-modal confirm-delete Tweet
 ```
 
-#### Notifications
+### Notifications
 
 ```bash
 # Create email notification (automatically appends 'EmailNotification')
@@ -430,7 +442,7 @@ php dock inapp-notification:delete Login
 # Optional: Module name as second argument
 ```
 
-#### Queue Task
+### Queue Task
 
 ```bash
 # Create a queue task (automatically appends 'Task')
@@ -441,7 +453,7 @@ php dock task:create ProcessOrder Order
 php dock task:delete ProcessOrder Order
 ```
 
-#### Queue Control
+### Queue Control
 
 ```bash
 # Pause queue processing (stops processing jobs, keeps daemon alive)
@@ -456,7 +468,7 @@ php dock queue:resume --identifier=default
 php dock worker:status --queue=default
 ```
 
-#### Resource
+### Resource
 
 ```bash
 # Create a resource
@@ -466,7 +478,7 @@ php dock resource:create Tweet Tweet
 php dock resource:delete Tweet Tweet
 ```
 
-#### Provider
+### Provider
 
 ```bash
 # Create a service provider
@@ -476,17 +488,27 @@ php dock provider:create Tweet Tweet
 php dock provider:delete Tweet Tweet
 ```
 
-#### Command
+### Command
 
 ```bash
-# Create a CLI command
-php dock command:create SendReport
+# Create a CLI command (automatically targets App/src/{Module}/Commands if module provided)
+php dock command:create SendReport [Module]
 
 # Delete a command
-php dock command:delete SendReport
+php dock command:delete SendReport [Module]
 ```
 
-#### Event
+### Schedule
+
+```bash
+# Create a new schedule class
+php dock schedule:create DailyCleanup [Module]
+
+# Delete a schedule class
+php dock schedule:delete DailyCleanup [Module]
+```
+
+### Event
 
 ```bash
 # Create an event class
@@ -504,7 +526,7 @@ php dock event:delete UserRegistered
 php dock event:delete OrderPlaced Shop
 ```
 
-#### Listener
+### Listener
 
 ```bash
 # Create a listener class
@@ -528,18 +550,18 @@ php dock listener:delete UpdateInventory Shop
 # Run code quality checks (Pint + PHPStan)
 php dock inspect
 
-# Ultimate production readiness check (CS Fixer + PHPStan + Tests)
+# Ultimate quality assurance check (CS Fixer + PHPStan + Tests)
 php dock sail
 ```
 
-#### Code Inspection
+### Code Inspection
 
 The `inspect` command runs comprehensive code quality checks:
 
 **What it does:**
 
-1. **Coding Standards (Pint)** - Checks code formatting and style
-2. **Static Analysis (PHPStan)** - Analyzes code for type errors and bugs
+- **Coding Standards (Pint)** - Checks code formatting and style
+- **Static Analysis (PHPStan)** - Analyzes code for type errors and bugs
 
 **Behavior:**
 
@@ -551,16 +573,16 @@ The `inspect` command runs comprehensive code quality checks:
 php dock inspect
 ```
 
-#### Production Readiness Check (Sail)
+### Quality Assurance (Sail)
 
 The `sail` command is your **ultimate assertion of readiness** before deployment. It runs all quality checks sequentially and fails immediately if any step fails.
 
 **What it does (in order):**
 
-1. **Inspection Check (Zero Errors)**:
+- **Inspection Check (Zero Errors)**:
    - Coding Standards (Pint)
    - Static Analysis (PHPStan)
-2. **Functionality Check (Operational Readiness)** - Full test suite (Pest)
+- **Functionality Check (Operational Readiness)** - Full test suite (Pest)
 
 **Behavior:**
 
@@ -579,7 +601,7 @@ php dock sail
 - Before deploying to production
 - Before creating a release
 - As part of your CI/CD pipeline
-- When you want confidence that everything is production-ready
+- When you want confidence that everything meets standards
 
 ### Testing
 
@@ -642,6 +664,25 @@ php dock version:sync
 php dock docs:sync
 ```
 
+### Task Scheduling
+
+Anchor provides a class-based task scheduling system that eliminates the need for managing multiple cron entries.
+
+**Automatic Discovery:**
+The framework automatically discovers any class implementing `Cron\Interfaces\Schedulable` within `packages/*/Schedules/` and `App/Schedules/`.
+
+**Running the Scheduler:**
+To execute the scheduled tasks, you only need to add a single cron entry to your server:
+
+```bash
+* * * * * cd /path-to-your-project && php dock schedule:run >> /dev/null 2>&1
+```
+
+**Discovery Logic:**
+- Scans `App/Schedules` for `*Schedule.php`
+- Scans `packages/*/Schedules` for `*Schedule.php`
+- Automatically registers and executes tasks that are due.
+
 ### Maintenance & Auditing
 
 ```bash
@@ -674,9 +715,9 @@ php dock tenant:list
 php dock tenant:migrate
 ```
 
-### Features & Packages
+## Features & Packages
 
-#### Wallet & Payments
+### Wallet & Payments
 
 ```bash
 # Display wallet balance and statistics
@@ -692,7 +733,7 @@ php dock wallet:transaction
 php dock pay:verify-pending
 ```
 
-#### Subscriptions & Campaigns (Wave & Blish)
+### Subscriptions & Campaigns (Wave & Blish)
 
 ```bash
 # Send renewal reminders for subscriptions
@@ -705,7 +746,7 @@ php dock wave:renew
 php dock blish:process
 ```
 
-#### Workflows & Tasks
+### Workflows & Tasks
 
 ```bash
 # Create a new workflow class
@@ -721,7 +762,7 @@ php dock flow:remind
 php dock hub:remind
 ```
 
-#### Security & Permissions
+### Security & Permissions
 
 ```bash
 # Sync roles and permissions from configuration
@@ -734,7 +775,7 @@ php dock permit:cache
 php dock rollout:status
 ```
 
-#### Storage & Vault
+### Storage & Vault
 
 ```bash
 # Check storage usage for an account

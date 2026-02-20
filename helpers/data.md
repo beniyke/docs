@@ -1,9 +1,9 @@
 # Data Helper
 
-The `Helpers\Data` class is a wrapper around the `Collections` class, providing an `ArrayAccess` and magic property interface. It is useful for managing structured datasets with dot-notation support.
+The `Helpers\Data\Data` class is a wrapper around the `Collections` class, providing an `ArrayAccess` and magic property interface. It is useful for managing structured datasets with dot-notation support.
 
 ```php
-use Helpers\Data;
+use Helpers\Data\Data;
 
 $data = Data::make(['user' => ['id' => 1]]);
 
@@ -14,7 +14,7 @@ echo $data->user;           // ['id' => 1] (Magic Prop)
 
 ## Creation
 
-#### make
+### make
 
 ```php
 static make(array $data, ?array $only = null): self
@@ -26,7 +26,7 @@ Initializes a new Data wrapper. If the `$only` array is provided, the data will 
 
 ## Retrieval
 
-#### get
+### get
 
 ```php
 get(string|int $key, mixed $default = null): mixed
@@ -36,7 +36,7 @@ Retrieves a value from the data set. Supports dot-notation for nested structures
 
 - **Example**: `$data->get('profile.notifications.email', true)`.
 
-#### data
+### data
 
 ```php
 data(): array
@@ -49,7 +49,7 @@ Returns the entire dataset as a raw associative array.
 
 ## Checks
 
-#### has
+### has
 
 ```php
 has(string|array $keys): bool
@@ -57,7 +57,7 @@ has(string|array $keys): bool
 
 Checks if a key (or an array of keys) exists in the data and is not null.
 
-#### filled
+### filled
 
 ```php
 filled(array $keys): bool
@@ -71,25 +71,25 @@ Determines if all specified keys are present and contain "truthy" data (not empt
 
 > All transformation methods return a **new instance**.
 
-#### add
+### add
 
 `add(array $items): self`
 
 Appends new items.
 
-#### remove
+### remove
 
 `remove(array $keys): self`
 
 Removes items by keys.
 
-#### update
+### update
 
 `update(array $items): self`
 
 Updates values using a key-value map.
 
-#### select
+### select
 
 `select(array $keys): self`
 
@@ -99,9 +99,9 @@ Returns a new instance with only the selected keys.
 
 | Component       | Description                           | Documentation                      |
 | :-------------- | :------------------------------------ | :--------------------------------- |
-| **Capsule**     | Immutable data container with schema  | [capsule](capsule-helper.md)       |
-| **DTO**         | Data Transfer Objects with validation | [dto](dto-helper.md)               |
-| **Collections** | Fluent array manipulation             | [array](array-helper.md)           |
-| **Routine**     | Sequential tasks and data pipelining  | [routine](routine-helper.md)       |
-| **Request**     | Handle incoming request data          | [request](request-helper.md)       |
-| **Validation**  | Data validation and rule engine       | [validation](validation-helper.md) |
+| **Capsule**     | Immutable data container with schema  | [capsule](capsule.md)              |
+| **DTO**         | Data Transfer Objects with validation | [dto](dto.md)                      |
+| **Collections** | Fluent array manipulation             | [array](array.md)                  |
+| **Routine**     | Sequential tasks and data pipelining  | [routine](routine.md)              |
+| **Request**     | Handle incoming request data          | [request](request.md)              |
+| **Validation**  | Data validation and rule engine       | [validation](validation.md)     |

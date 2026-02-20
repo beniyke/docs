@@ -1,6 +1,6 @@
 # Media
 
-The Media package provides a production-ready media library and file management system for the Anchor Framework. It support image conversions, polymorphic attachments, and optimized storage handling.
+The Media package provides a versatile media library and file management system for the Anchor Framework. It supports image conversions, polymorphic attachments, and optimized storage handling.
 
 ## Features
 
@@ -23,7 +23,7 @@ $media = Media::upload($file);
 
 // Track the media item in the user's secure Vault
 Vault::forAccount($user->id)
-    ->trackUpload($media->getPath(), $media->size);
+    ->trackUpload(Media::getPath($media), $media->size);
 ```
 
 ### Install the Package
@@ -34,7 +34,7 @@ php dock package:install Media --packages
 
 This will automatically:
 
-- Run database migrations for `media` table.
+- Run the migration for Media tables.
 - Register the `MediaServiceProvider`.
 - Publish the configuration file.
 
@@ -87,13 +87,13 @@ $allMedia = Media::query()
 
 ## Use Cases
 
-#### Secure User Documents
+### Secure User Documents
 
 Manage sensitive identity documents (Passports, ID Cards) that must be encrypted at rest and only accessible by authorized agents.
 
-#### Implementation
+### Implementation
 
-````php
+```php
 use Media\Media;
 use Permit\Permit;
 
@@ -108,14 +108,16 @@ public function uploadIdentityDoc()
     // 2. Integration: Track in Audit Trail
     Audit::make()
         ->event('media.id_upload')
-        ->on($user)
+        ->on($media)
+        ->by($user)
         ->with('media_uuid', $media->uuid)
         ->log();
 
     return response()->json(['status' => 'uploaded']);
 }
+```
 
-#### 1. Implementation (Action Pattern)
+### Implementation (Action Pattern)
 
 In Anchor, sensitive operations are encapsulated in Actions for reusability and clean controller logic.
 
@@ -124,38 +126,44 @@ namespace App\Actions\Media;
 
 use Media\Media;
 use Permit\Permit;
-use Core\Action;
+use App\Models\User;
+use Helpers\Http\Response;
 
-class ViewSecureDocumentAction extends Action
+class ViewSecureDocumentAction
 {
     /**
      * View a secure document if the user has permission or is the owner.
      */
-    public function execute(string $uuid): mixed
+    public function execute(User $user, string $uuid): Response
     {
         $media = Media::findByUuid($uuid);
-        $user = auth()->user();
-
-        // 3. Security: Check if current user is an admin or the owner
-        if (!Permit::can('view-sensitive-media') && $media->metadata['owner_id'] !== $user->id) {
-            abort(403);
+        
+        if (!$media) {
+            return response()->notFound();
         }
 
-        return response()->file($media->getPath());
+        
+        if (!Permit::can($user, 'view-sensitive-media') && ($media->metadata['owner_id'] ?? null) !== $user->id) {
+            return response()->forbidden();
+        }
+
+        return response()->file(Media::getPath($media));
     }
-}
-````
-
-#### 2. Usage in Controller
-
-```php
-public function show(string $uuid, ViewSecureDocumentAction $action)
-{
-    return $action->execute($uuid);
 }
 ```
 
-#### 2. Sample Data (JSON)
+### Usage in Controller
+
+```php
+use Helpers\Http\Response;
+
+public function show(string $uuid, ViewSecureDocumentAction $action): Response
+{
+    return $action->execute($this->auth->user(), $uuid);
+}
+```
+
+### Sample Data (JSON)
 
 State of a secure media record:
 
@@ -187,7 +195,7 @@ use Vault\Vault;
 $media = Media::upload($file);
 
 Vault::forAccount($user->id)
-    ->trackUpload($media->getPath(), $media->size);
+    ->trackUpload(Media::getPath($media), $media->size);
 
 // Check if user has space before next upload
 if (Vault::forAccount($user->id)->isFull()) {
@@ -239,7 +247,7 @@ $post->addMedia($uploadedFile, 'featured_image');
 
 // Retrieve media
 $image = $post->getFirstMedia('featured_image');
-echo $image->getUrl();
+echo Media::url($image);
 
 // Clear a collection
 $post->clearMediaCollection('temp');
@@ -278,13 +286,14 @@ $trends = $analytics->getUploadTrends(30);
 
 ### Media (Facade)
 
-| Method                 | Description                                       |
-| :--------------------- | :------------------------------------------------ |
-| `upload($file, $meta)` | Handles a raw file upload.                        |
-| `uploadFromUrl($url)`  | Fetches and stores a file from a remote URL.      |
-| `url($media, $conv)`   | Returns the public URL for a specific conversion. |
-| `delete($media)`       | Removes the file and its database record.         |
-| `analytics()`          | Returns the `MediaAnalytics` service.             |
+| Method                    | Description                                       |
+| :------------------------ | :------------------------------------------------ |
+| `upload($file, $options)` | Handles a raw file upload.                        |
+| `uploadFromUrl($url)`     | Fetches and stores a file from a remote URL.      |
+| `url($media, $conv)`      | Returns the public URL for a specific conversion. |
+| `getPath($media, $conv)`  | Returns the local file path.                      |
+| `delete($media)`          | Removes the file and its database record.         |
+| `analytics()`             | Returns the `MediaAnalytics` service.             |
 
 ### HasMedia (Trait)
 
@@ -297,19 +306,19 @@ $trends = $analytics->getUploadTrends(30);
 
 ### Media (Model)
 
-| Method           | Type      | Description                                      |
-| :--------------- | :-------- | :----------------------------------------------- |
-| `isImage()`      | `boolean` | True if the file is an image.                    |
-| `getHumanSize()` | `string`  | Formatted size (e.g., "1.2 MB").                 |
-| `getUrl($conv)`  | `string`  | Gets public path for the original or conversion. |
+| Method           | Type      | Description                      |
+| :--------------- | :-------- | :------------------------------- |
+| `isImage()`      | `boolean` | True if the file is an image.    |
+| `getHumanSize()` | `string`  | Formatted size (e.g., "1.2 MB"). |
 
 ## Troubleshooting
 
-| Error/Log                      | Cause                                       | Solution                                   |
-| :----------------------------- | :------------------------------------------ | :----------------------------------------- |
-| `FileTypeNotAllowed`           | The file MIME type is not in the whitelist. | Update `allowed_types` in `media.php`.     |
+| Error/Log                     | Cause                                       | Solution                                   |
+| :---------------------------- | :------------------------------------------ | :----------------------------------------- |
+| `FileTypeNotAllowedException` | The file MIME type is not in the whitelist. | Update `allowed_types` in `media.php`.     |
+| `FileSizeExceededException`   | The file size exceeds the maximum limit.    | Update `max_file_size` in `media.php`.     |
 | "Unable to generate thumbnail" | GD or ImageMagick is not installed.         | Install the required PHP extension.        |
-| "File not found"               | Record exists but file is missing on disk.  | Check the storage disk/path configuration. |
+| "File not found"              | Record exists but file is missing on disk.  | Check the storage disk/path configuration. |
 
 ## Security Best Practices
 

@@ -1,6 +1,6 @@
 # Proof
 
-The **Proof** package handles Testimonials and Case Studies, providing a robust framework- **Sources**: The entities (people or companies) that provide the social proof.
+The **Proof** package provides a comprehensive structure for managing social proof, including testimonials and case studies, to build trust and credibility.
 
 ## Installation
 
@@ -15,7 +15,7 @@ php dock package:install Proof --packages
 This command will:
 
 - Publish the `proof.php` configuration file.
-- Create necessary database tables (`proof_*`).
+- Run the migration for Proof tables.
 - Register the `ProofServiceProvider`.
 
 ### Configuration

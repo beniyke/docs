@@ -247,6 +247,13 @@ The `EmailComponent` provides a variety of methods to build structured, responsi
   ->line('Verified email addresses allow you to recover access...')
   ```
 
+- **`markdown(string $text)`**
+  Adds a paragraph of text with Markdown support. This is ideal when you need formatting like **bold**, *italics*, or [links](https://example.com) within a message.
+
+  ```php
+  ->markdown('This is a **reminder** for your [interview](https://example.com).')
+  ```
+
 - **`action(string $text, string $url)`**
   Adds a prominent call-to-action button. Use this for the primary goal of the email (e.g., "Reset Password", "View Invoice").
 
@@ -369,3 +376,22 @@ use Helpers\Data;
 $payload = Data::make(['name' => 'John', 'email' => 'john@example.com']);
 Mail::deferred(new WelcomeEmail($payload));
 ```
+
+## Asynchronous Queuing
+
+For heavy mail operations that should be handled by a dedicated background worker, use `Mail::queue()`. This method dispatches a task to the queue system.
+
+```php
+use Mail\Mail;
+use App\Tasks\SendSignupMailTask;
+
+// The data passed will be serialized (primitives only for security)
+$payload = [
+    'user_id' => 123,
+    'email' => 'user@example.com'
+];
+
+Mail::queue(SendSignupMailTask::class, $payload);
+```
+
+> For security reasons, the queue system only accepts primitive data types (arrays, strings, integers). You should reconstruct your `Mailable` objects inside your `Task::execute()` method using the provided IDs.

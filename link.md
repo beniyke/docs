@@ -24,7 +24,7 @@ php dock package:install Link --packages
 
 This will automatically:
 
-- Run database migrations for `link_*` tables.
+- Run the migration for Link tables.
 - Register the `LinkServiceProvider`.
 - Publish the configuration file.
 

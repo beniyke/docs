@@ -24,7 +24,7 @@ php dock package:install Onboard --packages
 This command will:
 
 - Publish the `onboard.php` configuration file.
-- Create necessary database tables (`onboard_*`).
+- Run the migration for Onboard tables.
 - Register the `OnboardServiceProvider`.
 
 ### Configuration
@@ -52,21 +52,42 @@ $onboarding = Onboard::onboarding()
     ->start();
 ```
 
-### Task & Document Management
+### Task Management
+
+Onboard provides a fluent `TaskBuilder` to create tasks dynamically or within templates.
 
 ```php
-// Mark task as complete
-Onboard::completeTask($user, $slackSetupTask, 'Setup complete with help from IT.');
+// Create a new task fluently
+$task = Onboard::task()
+    ->name('Setup Workspace')
+    ->description('Complete IT setup and workspace preparation.')
+    ->template($engineeringTemplate)
+    ->order(1)
+    ->create();
 
-// Verify a document
-Onboard::verifyDocument($passportUpload, $hrUser);
+// Mark task as complete
+Onboard::completeTask($user, $task, 'Workspace is ready.');
+```
+
+### Document Management
+
+```php
+// Track required documents
+$document = $template->documents()->create([
+    'name' => 'Passport',
+    'is_required' => true
+]);
+
+// Verify a document upload
+Onboard::verifyDocument($documentUpload, $hrUser);
 ```
 
 ### Training
 
 ```php
 // Update training progress
-Onboard::training()->updateProgress($user, $safetyTraining, 'in_progress');
+use Onboard\Enums\TrainingStatus;
+Onboard::training()->updateProgress($user, $safetyTraining, TrainingStatus::IN_PROGRESS); // or TrainingStatus::COMPLETED
 ```
 
 ### Equipment Provisioning
@@ -74,19 +95,19 @@ Onboard::training()->updateProgress($user, $safetyTraining, 'in_progress');
 Track asset requests like laptops, phones, and access badges.
 
 ```php
-use Onboard\Models\Equipment;
-
+use Onboard\Onboard;
+ 
 // Request equipment
-$equipment = Equipment::create([
-    'user_id' => $user->id,
-    'request_type' => 'Laptop',
-    'status' => 'pending',
-    'notes' => 'MacBook Pro 14"'
-]);
-
-// Update status
-$equipment->update(['status' => 'delivered', 'asset_tag' => 'ASSET-123']);
+$equipment = Onboard::equipment()->request($user, 'Laptop', 'MacBook Pro 14"');
+ 
+// Update status / Assign asset tag
+use Onboard\Enums\EquipmentStatus;
+Onboard::equipment()->assign($equipment, 'ASSET-123', EquipmentStatus::DELIVERED);
 ```
+
+## Automatic Completion
+
+The system automatically monitors progress through internal service triggers. When all **required tasks** are completed and **required documents** are verified by a reviewer, the `OnboardManagerService` automatically updates the onboarding status to `OnboardStatus::COMPLETED` and initiates a handoff to the `Metric` package.
 
 ## Analytics
 
@@ -102,17 +123,29 @@ $userProgress = Onboard::analytics()->progress($userId);
 
 ## Integrations
 
-- **Scout**: Automatically initiate onboarding when a candidate is hired.
+- **Scout**: (Planned) Automatically initiate onboarding when a candidate is hired.
 - **Flow**: (Planned) Sync onboarding tasks with the global task management system.
 - **Media**: Secure storage for all uploaded documents.
 - **Audit**: Immutable trail of every completion and verification event.
-- **Metric**: Automatically trigger goal initialization when onboarding is 100% complete.
+- **Metric**: (Planned) Automatically trigger goal initialization when onboarding is 100% complete.
 
 ## Models
 
-### Equipment
+Onboard relies on several core models to manage the workflow:
 
-The `Onboard\Models\Equipment` model represents a piece of equipment requested for a user.
+| Model              | Description                                                                 |
+| :----------------- | :-------------------------------------------------------------------------- |
+| `Onboarding`       | The primary record tracking a user's onboarding journey.                    |
+| `Template`         | Blueprints for onboarding workflows based on roles.                         |
+| `Task`             | Individual steps within a template.                                         |
+| `TaskCompletion`   | Records of users completing specific tasks.                                 |
+| `Document`         | Definitions of required documents (e.g., ID, Contract).                     |
+| `DocumentUpload`   | The actual file uploads and their verification status.                      |
+| `Training`         | Educational modules assigned to templates.                                  |
+| `TrainingProgress` | Individual user progress and completion status for training.                |
+| `Equipment`        | Asset requests associated with the onboarding process.                      |
+
+### Equipment Property Reference
 
 | Property       | Type      | Description                                                 |
 | :------------- | :-------- | :---------------------------------------------------------- |

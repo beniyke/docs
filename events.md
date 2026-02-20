@@ -166,14 +166,22 @@ php dock listener:delete SendWelcomeEmail
 
 See [CLI Documentation](cli.md) for full command reference.
 
-## Deferred Events
+## System Events
 
-You can dispatch events that execute their listeners _after_ the HTTP response is sent using `Event::deferred()`. This is useful for non-critical side effects like logging, analytics, or updating statistics that shouldn't impact user response time.
+The framework provides several internal events that you can listen to for lower-level lifecycle hooks. These are managed by the internal `Core\Providers\EventServiceProvider`.
 
-```php
-use Core\Event;
-use App\Events\UserLoggedInEvent;
+| Event | Description | Dispatched By |
+| --- | --- | --- |
+| `Core\Events\KernelTerminateEvent` | Dispatched after the HTTP response is sent. | `App` |
+| `Core\Events\ConsoleTerminateEvent` | Dispatched after a CLI command finishes. | `Console` |
 
-// Listeners for this event will run after the response
-Event::deferred(new UserLoggedInEvent($user));
-```
+### System Listeners
+
+Essential framework behaviors are implemented as system listeners. They reside in `System\Events\Listeners` and are registered automatically:
+
+- **`ClearResourceCacheListener`**: Clears relevant query caches based on the request context.
+- **`ProcessDeferredTasksListener`**: Executes tasks pushed via the `Defer` system.
+
+## State Management
+
+In long-running processes (like Queue Workers), the framework automatically resets the `Event` dispatcher using `Event::reset()` during the [Termination Phase](internals.md#the-termination-flow). This prevents dynamic event listeners from accumulating and causing memory leaks.

@@ -81,15 +81,15 @@ class LoginViewModel
 
 #### Option 2: Global Helper
 
-For simple views without a ViewModel, use the global `shield()` helper.
+For simple views without a ViewModel, use the global `shield()` helper. You can optionally pass a driver name to override the default.
 
 ```php
-<!-- Render both script and widget -->
-<?php echo shield()->all(); ?>
+<!-- Render both script and widget (accepts attributes) -->
+<?php echo shield()->all(['theme' => 'dark']); ?>
 
 <!-- OR separate them -->
 <?php echo shield()->script(); ?>
-<?php echo shield('turnstile')->render(['theme' => 'dark']); ?>
+<?php echo shield('turnstile')->render(['size' => 'compact']); ?>
 ```
 
 ### Backend Validation
@@ -118,7 +118,7 @@ public function login(Request $request)
 
 ### Analytics & Monitoring
 
-Shield integrates natively with the **Audit** package to track security health. Every verification attempt is logged.
+Shield integrates natively with the **Audit** package to track security health. Every verification attempt is logged, including the requester's IP address.
 
 > The **Audit** package must be installed and configured for analytics to function.
 
@@ -184,6 +184,20 @@ The events logged to Audit are:
 - `captcha.verified`: Validation success.
 - `captcha.failed`: Validation rejection (bot detected).
 - `captcha.error`: Technical error (e.g., API timeout, bad config).
+
+## Testing
+
+For automated testing, you can swap the `ShieldManagerService` in the container with a mock.
+
+```php
+use Shield\Services\ShieldManagerService;
+
+/** @var ShieldManagerService $shield */
+$shield = $this->createMock(ShieldManagerService::class);
+$shield->method('verify')->willReturn(true);
+
+$this->container->instance(ShieldManagerService::class, $shield);
+```
 
 ## Service API Reference
 

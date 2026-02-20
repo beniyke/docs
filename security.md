@@ -1,6 +1,6 @@
 # Security
 
-Anchor provides comprehensive security features to protect your application against common web vulnerabilities. This guide covers all security features and best practices.
+Anchor provides comprehensive security features to protect your application against common web vulnerabilities. This guide covers the frameworks approach to securing data, identities, and resources.
 
 ## Security Features Overview
 
@@ -13,39 +13,35 @@ Anchor provides comprehensive security features to protect your application agai
 | **Encryption**               | Data Breaches               | [encryption](encryption.md)               |
 | **Firewall**                 | Brute Force, Rate Limiting  | [firewall](firewall.md)                   |
 | **Security Headers**         | Clickjacking, MIME Sniffing | [middleware](middleware#security-headers) |
+| **Open Redirects**           | Phishing, Malicious Links   | [#open-redirects](#open-redirects)        |
 | **File Upload Validation**   | Malicious Uploads           | [#file-uploads](#file-uploads)            |
-| **Input Validation**         | Invalid Data                | [validation](validation.md)               |
 
 ## Quick Security Checklist
 
 ### Production Deployment
 
-- `APP_KEY` generated and secured
+- `APP_KEY` generated and secured (`php dock make:key`)
 - HTTPS enabled (`APP_SECURE=true`)
 - Debug mode disabled (`APP_DEBUG=false`)
-- CSRF protection enabled
-- Security headers middleware enabled
-- Strong password policies enforced
-- File upload validation implemented
-- Database credentials secured
-- Error reporting configured properly
-- Session timeout configured
-- Firewall thresholds set appropriately
+- CSRF protection enabled in `App/Config/default.php`
+- Security headers middleware enabled in `App/Config/middleware.php`
+- Strong password policies enforced in `App/Requests`
+- File upload validation implemented using `moveSecurely()`
+- Database credentials secured in `.env`
+- Firewall thresholds set appropriately in `App/Config/firewall.php`
 
 ### Code Security
 
-- All user input validated
-- Output escaped in views (`$this->escape()`)
-- Parameterized queries used (Query Builder)
-- Passwords hashed with Argon2ID
-- Sensitive data encrypted at rest
-- Authorization checks implemented
-- File uploads validated
-- CORS configured for APIs (if needed)
+- All user input validated via Request classes
+- Output escaped in views using `<?= $this->escape($var) ?>`
+- Parameterized queries used via the Query Builder
+- Passwords hashed with Argon2ID via `enc()->hashPassword()`
+- Sensitive data encrypted at rest using `encrypt()`
+- Authorization checks implemented via `$this->auth->isAuthorized()`
 
 ## CSRF Protection
 
-**Enabled by default** - Protects against Cross-Site Request Forgery attacks.
+Anchor protects against Cross-Site Request Forgery by default for all state-changing requests (POST, PUT, DELETE). It uses **constant-time comparisons** (`hash_equals`) for both the token and the origin-check hash to prevent timing attacks.
 
 ```php
 // In forms
@@ -54,7 +50,7 @@ Anchor provides comprehensive security features to protect your application agai
     <!-- form fields -->
 </form>
 
-// In AJAX
+// In AJAX (using the global helper)
 fetch('/api/endpoint', {
     headers: {
         'X-CSRF-Token': '<?= csrf_token() ?>'
@@ -64,323 +60,156 @@ fetch('/api/endpoint', {
 
 **Configuration:** `App/Config/default.php` → `csrf`
 
-See [csrf](csrf.md) for details.
 
 ## SQL Injection Protection
 
-**Built-in** - Query Builder uses parameterized queries.
+The framework core utilizes PDO with parameterized queries for all database operations, making SQL injection nearly impossible when using standard methods.
 
 ```php
-// Safe - uses bindings
+// Safe - uses bindings automatically
 User::query()->where('email', '=', $email)->first();
 
-// Safe - uses bindings
-DB::table('user')->where('id', '=', $id)->get();
-
-// Use whereRaw() carefully
-DB::table('user')->whereRaw('created_at > NOW()')->get();
+// Safe - manual bindings for complex queries
+DB::query("SELECT * FROM users WHERE status = ?", ['active'])->get();
 ```
 
 ## XSS Protection
 
-**Automatic escaping** in views + **Security Headers** middleware.
+Anchor provides multi-layered XSS protection:
+- **Output Escaping**: The view system provides `$this->escape()` for safe output.
+- **Security Headers**: Middleware adds `X-XSS-Protection` and `X-Content-Type-Options` headers.
 
 ```php
-// Safe - automatically escaped
-<?= $this->escape($user->name) ?>
+// Safe - automatically escaped if using the escape method
+<?= $this->escape($user->bio) ?>
 
-// Unsafe - only use for trusted HTML
-<?= $trustedHtml ?>
+// Unsafe - use ONLY for trusted content
+<?= $user->html_content ?>
 ```
-
-**Security Headers:**
-
-- `X-XSS-Protection: 1; mode=block`
-- `X-Content-Type-Options: nosniff`
-- `Content-Security-Policy` (optional)
 
 ## Authentication & Authorization
 
-**Argon2ID password hashing** + **Session-based authentication**.
+Anchor uses **Argon2ID** for password hashing, which is the current industry standard.
+
+### Password Management
+
+Use the `enc()` helper to handle password operations securely:
 
 ```php
-// Hash password
-$hashedPassword = enc()->hashPassword('user-password');
+// Hash a password using Argon2ID
+$hashedPassword = enc()->hashPassword('secure-password');
 
-// Verify password
-if (enc()->verifyPassword('input', $hashedPassword)) {
+// Verify a password
+if (enc()->verifyPassword('input-password', $hashedPassword)) {
     // Valid
-}
-
-// Check authentication
-if ($this->auth->isAuthenticated()) {
-    // User is logged in
-}
-
-// Check authorization
-if ($this->auth->isAuthorized($route)) {
-    // User can access this route
 }
 ```
 
-See [authentication.md](authentication.md) for details.
+### Access Control
+
+Verify a user's status and permissions through the `AuthManager`:
+
+```php
+// Check if user is logged in
+if ($this->auth->isAuthenticated()) { ... }
+
+// Check route-level authorization
+if ($this->auth->isAuthorized($route)) { ... }
+```
 
 ## Encryption
 
-**AES-256-GCM** for strings, **Argon2ID** for passwords, **PBKDF2** for files.
+Anchor provides high-level drivers for data and file encryption:
+
+- **Strings**: AES-256-GCM (via `encrypt()` / `decrypt()`)
+- **Passwords**: Argon2ID (via `enc()->hashPassword()`)
+- **Files**: PBKDF2 with high iteration counts.
 
 ```php
-// Encrypt sensitive data
-$encrypted = encrypt('sensitive data');
+// Encrypt sensitive string data
+$encrypted = encrypt('personal-info');
 
 // Decrypt
 $decrypted = decrypt($encrypted);
-
-// Hash password
-$hash = enc()->hashPassword('password');
-
-// Verify password
-if (enc()->verifyPassword('password', $hash)) {
-    // Valid
-}
-```
-
-See [encryption.md](encryption.md) for details.
-
-## Security Headers
-
-**Middleware** that adds security headers to all responses.
-
-```php
-// In App/Config/middleware.php
-return [
-    'web' => [
-        \App\Middleware\Web\SecurityHeadersMiddleware::class,
-        // ... other middleware
-    ],
-];
-```
-
-**Headers Added:**
-
-- `X-Frame-Options: SAMEORIGIN` - Prevents clickjacking
-- `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
-- `X-XSS-Protection: 1; mode=block` - Legacy XSS protection
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Permissions-Policy` - Controls browser features
-- `Strict-Transport-Security` - HSTS (HTTPS only)
-
-**Configuration:** `App/Config/default.php` → `security_headers`
-
-```php
-'security_headers' => [
-    'enabled' => true,
-    'x_frame_options' => 'SAMEORIGIN',
-    'x_content_type_options' => 'nosniff',
-    'hsts_enabled' => true,
-];
 ```
 
 ## Firewall and Rate Limiting
 
-**Protects against brute force** and excessive requests.
+The Firewall system protects against brute force attacks and malicious traffic.
+
+### Automated Integration
+
+The firewall is automatically integrated into the authentication flow via system events:
+
+- **`LoginEvent`**: Resets the failure counter upon success (`LoginListener`).
+- **`LoginFailedEvent`**: Increments the failure counter and triggers blocks (`LoginFailedListener`).
+
+### Manual Usage
+
+You can also trigger firewall checks manually in your services or controllers:
 
 ```php
 use Security\Firewall\Drivers\AccountFirewall;
 
 $firewall = resolve(AccountFirewall::class);
 
-$firewall->user(['id' => $userId])
-    ->handle();
+$firewall->user(['id' => $userId])->handle();
 
 if ($firewall->isBlocked()) {
-    // User is blocked
+    // Return error or redirect
 }
 ```
-
-See [firewall](firewall.md) for details.
 
 ## File Uploads
 
-**Securely handle file uploads** to prevent malicious code execution.
+Never trust user-supplied filenames or MIME types. Use the `moveSecurely()` method on uploaded files.
 
 ```php
-$file = $this->request->file('avatar');
-
-// Validate type, size, and use a safe filename
 $path = $file->moveSecurely('/uploads/avatars', [
-    'type' => 'image',       // Only allow images
-    'maxSize' => 2097152,    // Max 2MB
-    'extensions' => ['jpg', 'png'] // Explicit extensions
+    'type' => 'image',             // Validation against actual file content
+    'maxSize' => 2 * 1024 * 1024,  // 2MB
+    'extensions' => ['jpg', 'png'] // Only allow these extensions
 ]);
+```
 
-if (!$path) {
-    // Validation failed
-    $error = $file->getValidationError();
+## Open Redirect Protection
+
+The framework prevents open redirect vulnerabilities by validating redirect URLs. By default, `Response::redirect()` only allows URLs internal to your application.
+
+```php
+// Safe - internal URL
+return $this->response->redirect('/dashboard');
+
+// Blocked by default - external URL
+return $this->response->redirect('https://malicious.com');
+
+// Explicitly allow external redirect
+return $this->response->redirect('https://trusted-site.com', 302, true);
+```
+
+## Path Traversal Protection
+
+Anchor provides utilities to ensure file operations stay within allowed directory trees, preventing `../` traversal attacks.
+
+```php
+use Helpers\File\Paths;
+
+// Resolves path and throws exception if it traverses outside the project root
+$safePath = Paths::securePath($userInputPath);
+
+// Verify if a path is within a specific base
+if (FileSystem::isWithin($path, storage_path())) {
+    // Authorized access
 }
 ```
-
-**Key Security Features:**
-
-- **MIME Type Validation**: Checks actual file content, not just extension
-- **Extension Allow-list**: Only allows safe file extensions
-- **Filename Sanitization**: Generates random safe filenames or sanitizes input
-- **Size Limits**: Prevents DoS attacks via large files
-- **Permissions**: Sets non-executable permissions on uploaded files
-
-See [requests.md#file-uploads](requests.md#file-uploads) for implementation details.
-
-## CORS (Cross-Origin Resource Sharing)
-
-**For APIs** - Configure allowed origins, methods, and headers.
-
-```php
-// Enable in App/Config/cors.php
-'enabled' => true,
-'allowed_origins' => [
-    'https://yourdomain.com',
-    'https://*.yourdomain.com', // Wildcard subdomain
-],
-'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE'],
-```
-
-**Add to API middleware:**
-
-```php
-// In App/Config/middleware.php
-return [
-    'api' => [
-        \App\Middleware\Api\CorsMiddleware::class,
-        // ... other middleware
-    ],
-];
-```
-
-## Input Validation
-
-**Class-based validation** with type checking and sanitization.
-
-```php
-public function rules(): array
-{
-    return [
-        'email' => ['type' => 'email'],
-        'password' => [
-            'type' => 'password',
-            'config' => [
-                'uppercase' => 1,
-                'numeric' => 1,
-                'special' => 1,
-                'length_min' => 12, // Increased for security
-                'not_common' => true,
-            ]
-        ],
-    ];
-}
-```
-
-See [validation](validation.md) for details.
 
 ## Session Security
 
-**Database-backed sessions** with secure cookies.
+Sessions are secured using several techniques:
 
-```php
-// Configuration in App/Config/default.php
-'session' => [
-    'timeout' => 14400, // 4 hours
-    'cookie' => [
-        'secure' => true,      // HTTPS only
-        'http_only' => true,   // No JavaScript access
-        'samesite' => 'Lax',   // CSRF protection
-    ],
-],
-```
-
-## Security Best Practices
-
-### Use HTTPS in Production
-
-```ini
-# .env
-APP_SECURE=true
-```
-
-### Validate All User Input
-
-```php
-// Always validate before processing
-$validator->validate($this->request->post());
-
-if ($validator->has_error()) {
-    // Handle errors
-}
-```
-
-### Escape All Output
-
-```php
-// In views
-<?= $this->escape($user->name) ?>
-```
-
-### Use Parameterized Queries
-
-```php
-// Safe
-User::query()->where('email', '=', $email)->first();
-
-// Never do this
-DB::raw("SELECT * FROM user WHERE email = '$email'");
-```
-
-### Hash Passwords
-
-**Don't Encrypt**
-
-```php
-// Correct
-$user->password = enc()->hashPassword($password);
-
-// Wrong
-$user->password = encrypt($password);
-```
-
-### Protect Sensitive Data
-
-```php
-// Encrypt sensitive data at rest
-$user->ssn = encrypt($ssn);
-
-// Use HTTPS for data in transit
-```
-
-### Implement Authorization
-
-```php
-// Check if user can access resource
-if (!$this->auth->isAuthorized($route)) {
-    return $this->response->status(403)->json(['error' => 'Forbidden']);
-}
-```
-
-### Keep Dependencies Updated
-
-```bash
-composer update
-```
-
-### Use Security Headers
-
-Enable `SecurityHeadersMiddleware` in production.
-
-### Regular Security Audits
-
-- Review code for vulnerabilities
-- Update dependencies
-- Test authentication/authorization
-- Verify HTTPS configuration
-- Check file upload handling
+- **Database Storage**: Prevents session hijacking via local file access.
+- **Secure Cookies**: `http_only`, `secure`, and `SameSite=Lax` are defaults.
+- **Rotation**: `SessionGuard` automatically regenerates the session ID upon login and logout to prevent fixation attacks.
 
 ## Common Vulnerabilities & Protections
 
@@ -388,9 +217,10 @@ Enable `SecurityHeadersMiddleware` in production.
 | ---------------------------- | ---------------------- | ------------- |
 | **SQL Injection**            | Parameterized queries  | ✅ Built-in   |
 | **XSS**                      | Output escaping + CSP  | ✅ Built-in   |
-| **CSRF**                     | Token validation       | ✅ Built-in   |
-| **Clickjacking**             | X-Frame-Options        | ✅ Middleware |
-| **MIME Sniffing**            | X-Content-Type-Options | ✅ Middleware |
+| **CSRF**                     | Token validation (constant-time) | ✅ Built-in   |
+| **Open Redirects**           | Internal URL validation          | ✅ Built-in   |
+| **Clickjacking**             | X-Frame-Options                  | ✅ Middleware |
+| **MIME Sniffing**            | X-Content-Type-Options           | ✅ Middleware |
 | **Session Fixation**         | Session regeneration   | ✅ Built-in   |
 | **Brute Force**              | Firewall rate limiting | ✅ Built-in   |
 | **Weak Passwords**           | Argon2ID hashing       | ✅ Built-in   |
@@ -399,22 +229,4 @@ Enable `SecurityHeadersMiddleware` in production.
 
 ## Compliance
 
-The framework's security features support compliance with:
-
-- **PCI DSS** - Payment card data protection
-- **HIPAA** - Healthcare data encryption
-- **GDPR** - Personal data protection
-- **SOC 2** - Security controls
-
-## Reporting Security Issues
-
-If you discover a security vulnerability, please email security@example.com. Do not create public issues for security vulnerabilities.
-
-## Additional Resources
-
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [CSRF Documentation](csrf.md)
-- [Encryption Documentation](encryption.md)
-- [Authentication Documentation](authentication.md)
-- [Firewall Documentation](firewall.md)
-- [Validation Documentation](validation.md)
+Anchor's security architecture supports compliance standards including **GDPR**, **PCI DSS**, and **HIPAA** through its implementation of encryption at rest, secure data handling, and comprehensive auditing.

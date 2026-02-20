@@ -47,21 +47,21 @@ The Debugger automatically collects the following information for every request:
 
 ### Simple Logging
 
-You can use the `logger()` helper to log messages. All log messages are automatically pushed to the debug bar's Messages collector (when debug mode is enabled) in addition to being written to files.
+You can use the [Log Facade](helpers/log.md) to log messages. All log messages are automatically pushed to the debug bar's Messages collector (when debug mode is enabled) in addition to being written to files.
 
 ```php
-// Log to default file (App/storage/logs/anchor.log)
-// Also appears in debug bar
-logger('anchor.log')->info('User logged in', ['id' => $user->id]);
+use Helpers\Log;
 
-// Log to specific file
-// Also appears in debug bar
-logger('payments.log')->info('Payment processed');
+// Log to default file (also appears in debug bar)
+Log::channel('anchor')->info('User logged in', ['id' => $user->id]);
+
+// Log to specific channel (also appears in debug bar)
+Log::channel('payments')->info('Payment processed');
 
 // Different log levels appear with different colors in debug bar
-logger('app.log')->error('Database connection failed');   // Red
-logger('app.log')->warning('Disk space low');             // Yellow
-logger('app.log')->info('Task completed');                // Blue
+Log::channel('app')->error('Database connection failed');   // Red
+Log::channel('app')->warning('Disk space low');             // Yellow
+Log::channel('app')->info('Task completed');                // Blue
 ```
 
 ### Dump and Die
@@ -104,3 +104,7 @@ You can configure detailed settings in `App/Config/app.php` or `App/Config/debug
 ## Security
 
 Ensure `APP_DEBUG` is set to `false` in production environments to prevent sensitive information leakage. By default, the Debugger will not render if `APP_DEBUG` is false.
+
+## State Management
+
+In long-running environments, the `DebuggerServiceProvider` implements the `TerminableInterface`. When the system terminates (e.g., after a queue job), it calls `Debugger::terminate()` which clears all collected data and resets the `DebugBar` instance to prevent memory leaks and data overlap between cycles.

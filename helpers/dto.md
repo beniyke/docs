@@ -1,9 +1,9 @@
 # DTO Helper
 
-The `Helpers\DTO` class provides a base for creating strict, type-safe Data Transfer Objects with automatic property mapping and validation.
+The `Helpers\Data\DTO` class provides a base for creating strict, type-safe Data Transfer Objects with automatic property mapping and validation.
 
 ```php
-use Helpers\DTO;
+use Helpers\Data\DTO;
 
 class CreateUserDTO extends DTO
 {
@@ -23,7 +23,7 @@ echo $user->name; // John Doe
 
 ## Defining DTOs
 
-DTOs are defined by extending the `Helpers\DTO` class and defining public properties with appropriate type hints.
+DTOs are defined by extending the `Helpers\Data\DTO` class and defining public properties with appropriate type hints.
 
 - **Required Properties**: Properties without a default value or nullability are considered required.
 - **Optional Properties**: Can be marked as nullable (`?int`) or assigned a default value.
@@ -31,7 +31,7 @@ DTOs are defined by extending the `Helpers\DTO` class and defining public proper
 
 ## Class Methods
 
-#### toArray
+### toArray
 
 ```php
 toArray(): array
@@ -41,17 +41,17 @@ Converts the DTO properties into a raw associative array.
 
 - **Use Case**: Passing data from a DTO into a view or a database query builder.
 
-#### getData
+### getData
 
 ```php
 getData(): Data
 ```
 
-Returns a `Helpers\Data` instance wrapping the DTO's properties.
+Returns a `Helpers\Data\Data` instance wrapping the DTO's properties.
 
 - **Use Case**: Using the DTO as a source for fluent data manipulation.
 
-#### isValid
+### isValid
 
 ```php
 isValid(): bool
@@ -59,7 +59,7 @@ isValid(): bool
 
 Returns `true` if all properties designated as "required" (those without default values) have been provided.
 
-#### getErrors
+### getErrors
 
 ```php
 getErrors(): array
@@ -85,6 +85,6 @@ if (!$dto->isValid()) {
 
 ## Related
 
-- [Data](data-helper.md) - ArrayAccess wrapper
-- [Capsule](capsule-helper.md) - Immutable data container
-- [Validation](validation-helper.md) - Input validation schemas
+- [Data](data.md) - ArrayAccess wrapper
+- [Capsule](capsule.md) - Immutable data container
+- [Validation](validation.md) - Input validation schemas

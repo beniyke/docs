@@ -125,6 +125,140 @@ public function register(): void
 
 **Use cases**: Request handlers, form validators, DTOs
 
+## The Action Pattern (Single-Purpose Logic)
+
+For business logic that is reusable across Controllers, Commands, or Jobs, use the **Single Action Pattern**. This keeps controllers slim and logic testable in isolation.
+
+Every Action must extend `App\Core\BaseAction` and implement the `execute()` method.
+
+```php
+<?php
+
+namespace App\Account\Actions;
+
+use App\Core\BaseAction;
+use App\Models\User;
+
+class UpdateProfileAction extends BaseAction
+{
+    public function execute(mixed $data): User
+    {
+        $user = $data['user'];
+        $user->update($data['attributes']);
+
+        return $user;
+    }
+}
+```
+
+**Benefits**:
+
+- **Reusability**: Use the same logic in a web controller and a CLI command.
+- **Isolation**: Test the action independently of the HTTP request.
+- **Clarity**: Each file has one job.
+
+## The ViewModel Pattern (Clean Views)
+
+To prevent complex logic from leaking into your views, wrap your models in a **ViewModel**. These should be `readonly` classes that handle data transformation.
+
+```php
+<?php
+
+namespace App\Account\Views\Models;
+
+use App\Models\User;
+use Helpers\String\Str;
+
+readonly class UserViewModel
+{
+    public function __construct(private User $user) {}
+
+    public function getShortName(): string
+    {
+        return Str::shortenWithInitials($this->user->name);
+    }
+
+    public function getStatusColor(): string
+    {
+        return $this->user->isActive() ? 'green' : 'red';
+    }
+}
+```
+
+**Rule**: Views should only interact with ViewModels, never raw Models for complex transformations.
+
+## Cross-Package Integration
+
+Anchor's modular nature requires a disciplined approach to how packages interact.
+
+### Soft vs. Hard Integration
+
+When a package needs to interact with another, always prefer **Soft Integration**.
+
+- **Hard Integration**: Direct imports or dependencies that cause the application to crash if the other package is missing. (e.g., `use OtherPackage\Models\Record;`)
+- **Soft Integration**: Checking for existence and using high-level abstractions.
+
+```php
+// ✅ Soft Integration Pattern
+use OtherPackage\Other;
+
+public function process(int $id)
+{
+    if (class_exists(Other::class)) {
+        // Use facade or service, not record directly
+        Other::dispatch($id);
+    }
+}
+```
+
+### The Graceful Failure Principle
+
+Integrations should be non-blocking. If an optional package fails, the primary package should continue its work. Always wrap optional cross-package calls in `try-catch` blocks or conditional checks.
+
+```php
+try {
+    Slot::book($scheduleId, $user, $period);
+} catch (Throwable $e) {
+    Log::warning("Optional Slot booking failed: " . $e->getMessage());
+    // Proceed anyway - the core 1-on-1 meeting is still valid
+}
+```
+
+## Modular Model Extensions (Macros)
+
+To maintain a strict **Separation of Concerns**, you should never modify core models (like `User`) to add package-specific logic. Instead, use **Macros** in your package's Service Provider.
+
+```php
+use App\Models\User;
+use Metric\Models\Manager;
+
+public function register(): void
+{
+    // Inject relationship into User model at runtime
+    User::macro('manager', function() {
+        return $this->belongsTo(Manager::class, 'manager_id');
+    });
+}
+```
+
+This ensures that the `Metric` package remains self-contained, and the `User` model remains clean and agnostic of the packages installed.
+
+### Making Your Classes Extensible (Macroable)
+
+If you are building a new system component that others might want to extend, use the `System\Helpers\Macroable` trait.
+
+```php
+use System\Helpers\Macroable;
+
+class ViewEngine
+{
+    use Macroable;
+}
+
+// Elsewhere (e.g., in a Service Provider)
+ViewEngine::macro('customHelper', function() { ... });
+```
+
 ## File System & Abstractions
 
 While native PHP functions like `file_exists()` or `mkdir()` work, the framework encourages using its abstraction layers (like the `FileSystem` helper) for consistency and to simplify cross-platform path handling.
@@ -362,7 +496,7 @@ php vendor/bin/phpstan analyse System/Package/PackageManager.php
 
 ### Understanding PHPStan Levels
 
-```
+```text
 Level 0 - Basic checks (undefined variables, unknown properties)
 Level 1 - Unknown classes
 Level 2 - Unknown methods called on $this
@@ -843,53 +977,83 @@ describe('Package Installation E2E', function () {
 
 ### Best Practices for E2E Tests
 
-1. **Keep them focused**: Test one complete workflow per test
-2. **Use realistic data**: Mirror production scenarios
-3. **Clean up thoroughly**: Reset database and file system after each test
-4. **Run selectively**: E2E tests are slow, run them in CI or before deployment
-5. **Document complex setups**: Add comments explaining multi-step arrangements
+- **Keep them focused**: Test one complete workflow per test
+- **Use realistic data**: Mirror production scenarios
+- **Clean up thoroughly**: Reset database and file system after each test
+- **Run selectively**: E2E tests are slow, run them in CI or before deployment
+- **Document complex setups**: Add comments explaining multi-step arrangements
+
+## Long-Running Process Hygiene
+
+For persistent processes like **CLI Workers** or **Watchers**, memory and state management are critical.
+
+- **No Static Accumulation**: Avoid static arrays that grow indefinitely.
+- **Kernel Reset**: Use `Kernel::terminate()` to clear temporary caches.
+- **State Cleanup**: If your service holds state, implement a `reset()` method.
+
+```php
+// In your Service
+public function reset(): void
+{
+    $this->cache = [];
+}
+
+// In System/Core/Kernel.php
+protected function terminate(): void
+{
+    resolve(MyService::class)->reset();
+}
+```
+
+## Dock-CLI Development Workflow
+
+Maximize productivity and code quality by using the `dock` toolchain:
+
+- **`php dock format`**: Run this constantly to keep code clean.
+- **`php dock inspect`**: Run before committing to catch PHPStan/Pint issues.
+- **`php dock sail`**: Run as the final gatekeeper for tests and quality.
 
 ## Performance & Scaling at Scale
 
 Anchor doesn't collapse because it's slow; it collapses because convenience is allowed to replace discipline. To build products that survive real growth, follow these scaling rules:
 
-#### 1. No Uncontrolled Data Fetching
+### No Uncontrolled Data Fetching
 
 If a query returns "everything," it's a bug. Large datasets must always be constrained, paginated, or streamed using the framework's available tools.
 
-#### 2. Relationships Must Be Intentional
+### Relationships Must Be Intentional
 
 Lazy loading should never be "accidental" at scale. If relationships are accessed, they must be explicitly planned, reviewed, and eager-loaded where necessary to avoid N+1 issues.
 
-#### 3. Indexing is Part of Feature Delivery
+### Indexing is Part of Feature Delivery
 
 Any new filter, lookup, or foreign reference must ship with a database index. Indexing is not a follow-up task; it is part of the feature itself.
 
-#### 4. Lightweight Request Cycles
+### Lightweight Request Cycles
 
 Anything slow, repeatable, or failure-prone (e.g., sending emails, external API calls, heavy processing) must run outside the user request cycle. Queues are mandatory once traffic exists.
 
-#### 5. Collections are Not a Data Engine
+### Collections are Not a Data Engine
 
 If logic can be pushed to the database layer (SQL), it should be. Moving large datasets into memory for heavy collection work is a red flag for scalability.
 
-#### 6. Mandatory Pagination for Lists
+### Mandatory Pagination for Lists
 
 No exceptions. If a screen or API endpoint lists data that can grow over time, it must implement pagination from day one.
 
-#### 7. The Database is Never a Cache
+### The Database is Never a Cache
 
 Repeat reads require a caching strategy. Use the `Cache` helper to store expensive results. Database load should represent the source of truth, not a convenient workspace for temporary data.
 
-#### 8. Performance is Measured, Not Assumed
+### Performance is Measured, Not Assumed
 
 Review query counts, execution time, and memory usage during development. Use the `Benchmark` helper to quantify performance before and after changes.
 
-#### 9. Query/Builder Convenience is Audited
+### Query/Builder Convenience is Audited
 
 Be cautious with Accessors, Casts, Appended Attributes, and Global Scopes. While convenient, they are performance-sensitive and can hide expensive operations.
 
-#### 10. Scaling Rules are Documented Early
+### Scaling Rules are Documented Early
 
 Set performance boundaries and scaling expectations for your codebase before the team or traffic doubles. Written discipline prevents technical debt.
 

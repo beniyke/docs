@@ -1,6 +1,6 @@
 # Watcher
 
-Watcher is a powerful, low-overhead monitoring and debugging tool integrated directly into the framework. It records requests, database queries, exceptions, jobs, and file logs, providing valuable insights into your application's performance and health.
+Watcher is a low-overhead monitoring and debugging tool integrated directly into the framework. It records requests, database queries, exceptions, jobs, and file logs, providing valuable insights into your application's performance and health.
 
 ## Installation
 
@@ -17,7 +17,7 @@ This will automatically:
 - Publish the configuration to `App/Config/watcher.php`
 - Register the `WatcherServiceProvider`
 - Inject `WatcherMiddleware` into the `web` middleware group
-- Run database migrations for the `watcher_entries` table
+- Run the migration for Watcher tables.
 
 ### Verify Database
 

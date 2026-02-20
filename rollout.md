@@ -1,6 +1,6 @@
 # Rollout
 
-The Rollout package provides a production-ready Feature Flag and A/B Testing system for the Anchor Framework. It enables progressive feature releases, user-segment targeting, and controlled experimentation.
+The Rollout package provides an advanced Feature Flag and A/B Testing system for the Anchor Framework. It enables progressive feature releases, user-segment targeting, and controlled experimentation.
 
 ## Features
 
@@ -24,7 +24,7 @@ php dock package:install Rollout --packages
 
 This will automatically:
 
-- Run database migrations for features and targeting tables.
+- Run the migration for Rollout tables.
 - Register the `RolloutServiceProvider`.
 - Publish the configuration file.
 
@@ -74,11 +74,11 @@ if (Rollout::isEnabled('new-checkout-flow', $user)) {
 
 ## Use Cases
 
-#### Tiered Beta Rollout
+### Tiered Beta Rollout
 
 Release a high-impact feature first to your internal team, then to Platinum resellers, and finally to 10% of the general public.
 
-#### Implementation (In a Seeder or Console)
+### Implementation
 
 ```php
 use Rollout\Rollout;

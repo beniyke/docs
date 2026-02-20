@@ -1,6 +1,6 @@
 # Tenancy
 
-Anchor provides a robust multi-tenancy system out of the box, allowing you to serve multiple customers (tenants) from a single installation. Each tenant gets their own isolated environment, ensuring data privacy and security.
+The Tenancy package provides a high-performance multi-tenant architecture for the Anchor Framework. It enables you to serve multiple customers (tenants) from a single installation, ensuring strict data isolation and privacy through a robust separate database strategy.
 
 ## Installation
 
@@ -14,10 +14,11 @@ php dock package:install Tenancy --packages
 
 This will automatically:
 
-1. Copy configuration files to `App/Config/`
-2. Register the `TenancyServiceProvider`
-3. Register the `TenantIdentificationMiddleware`
-4. Run core migrations (creates `tenant` table in the central database)
+- Copy configuration files to `App/Config/`
+- Register the `TenancyServiceProvider`
+- Register the `TenantIdentificationMiddleware`
+- Run the migration for Tenancy tables.
+- Enable global helper functions (`tenant()`, `tenant_manager()`, `tenant_config()`, etc.)
 
 > Ensure your central database is configured in `App/Config/database.php` before running the installation.
 
@@ -85,11 +86,11 @@ $tenant = $service->create([
 
 **What happens during provisioning:**
 
-1. **Validation**: Checks subdomain format and uniqueness.
-2. **Persistence**: Creates a record in the central `tenant` table.
-3. **Database Creation**: Creates the physical database and a dedicated user.
-4. **Migration**: Runs migrations from the configured `migrations_path`.
-5. **Seeding**: Executes the default `TenantSeeder` (if `seed` is true).
+- **Validation**: Checks subdomain format and uniqueness.
+- **Persistence**: Creates a record in the central `tenant` table.
+- **Database Creation**: Creates the physical database and a dedicated user.
+- **Migration**: Runs migrations from the configured `migrations_path`.
+- **Seeding**: Executes the default `TenantSeeder` (if `seed` is true).
 
 ### Automatic Context Identification
 
@@ -129,6 +130,29 @@ Tenancy::setContext($tenant);
 
 // Reset to central context
 Tenancy::reset();
+```
+
+### Global Helpers
+
+Tenancy provides convenient global helpers to access the current tenant and manager.
+
+```php
+// Get current tenant model
+$tenant = tenant();
+
+// Get TenantManager instance
+$manager = tenant_manager();
+
+// Get tenant-specific config
+$value = tenant_config('key', 'default');
+
+// Check if multi-tenancy is enabled
+if (is_multi_tenant()) {
+    // ...
+}
+
+// Generate tenant-aware URL
+$url = tenant_url('dashboard');
 ```
 
 ## Console Commands

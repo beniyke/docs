@@ -25,7 +25,7 @@ echo MyClass::sayHi('Jane');        // "Hi, Jane" (Static call works too)
 
 ## Methods
 
-#### macro
+### macro
 
 ```php
 static macro(string $name, callable $macro): void
@@ -36,7 +36,7 @@ Registers a custom method that can be called on the class or its instances.
 - **Use Case**: Extending a core framework class with a utility method specific to your project.
 - **Example**: Adding a `toCSV` method to a `Collection` class.
 
-#### hasMacro
+### hasMacro
 
 ```php
 static hasMacro(string $name): bool
@@ -46,7 +46,7 @@ Checks if a specific macro has been registered.
 
 - **Use Case**: Conditional logic that relies on a plugin or package having registered its macros.
 
-#### flushMacros
+### flushMacros
 
 ```php
 static flushMacros(): void
@@ -62,5 +62,6 @@ The trait uses PHP's `__call` and `__callStatic` magic methods to intercept call
 
 ## Related
 
+- [Mixins](mixins.md) - For bulk-registering multiple macros at once.
 - [Data](data-helper.md) - Often uses macros for custom data transformations
 - [Capsule](capsule-helper.md) - Supports custom getters and logic extensions

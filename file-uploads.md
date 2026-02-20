@@ -157,19 +157,18 @@ try {
 ### Get Uploaded Files
 
 ```php
-use Helpers\Http\Request;
+namespace App\Http\Controllers;
 
-class UploadController
+use App\Core\BaseController;
+use Helpers\Http\FileHandler;
+
+class UploadController extends BaseController
 {
-    public function __construct(
-        private Request $request
-    ) {}
-
     public function upload()
     {
         // Check if request has files
         if (!$this->request->hasFile()) {
-            return response()->json(['error' => 'No file uploaded'], 400);
+            return $this->response->json(['error' => 'No file uploaded'], 400);
         }
 
         // Get specific file
@@ -178,6 +177,7 @@ class UploadController
 
         // Process upload
         if ($avatar->isValid()) {
+            // path is resolved via Paths::basePath()
             $avatar->moveSecurely('storage/avatars', [
                 'maxSize' => '1mb',
                 'extensions' => ['jpg', 'png']
@@ -215,20 +215,19 @@ if (is_array($documents)) {
 ## Complete Upload Example
 
 ```php
+namespace App\Http\Controllers;
+
+use App\Core\BaseController;
 use Helpers\Http\FileHandler;
-use Helpers\Http\Request;
+use Exception;
 
-class ProfileController
+class ProfileController extends BaseController
 {
-    public function __construct(
-        private Request $request
-    ) {}
-
     public function uploadAvatar()
     {
         // Validate request has file
         if (!$this->request->hasFile()) {
-            return response()->json([
+            return $this->response->json([
                 'error' => 'No file provided'
             ], 400);
         }
@@ -239,7 +238,7 @@ class ProfileController
 
         // Check basic validity
         if (!$file->isValid()) {
-            return response()->json([
+            return $this->response->json([
                 'error' => $file->getErrorMessage()
             ], 400);
         }
@@ -251,6 +250,7 @@ class ProfileController
 
         // Validate and move securely
         try {
+            // Path automatically resolved to Paths::basePath('storage/avatars')
             $filename = $file->moveSecurely('storage/avatars', [
                 'type' => 'image',
                 'maxSize' => '2mb'
@@ -261,14 +261,14 @@ class ProfileController
             $user->avatar = basename($filename);
             $user->save();
 
-            return response()->json([
+            return $this->response->json([
                 'success' => true,
                 'filename' => $filename,
                 'url' => url('storage/avatars/' . $filename)
             ]);
 
         } catch (Exception $e) {
-            return response()->json([
+            return $this->response->json([
                 'error' => 'Upload failed: ' . $e->getMessage()
             ], 400);
         }

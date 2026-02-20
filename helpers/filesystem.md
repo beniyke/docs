@@ -60,6 +60,20 @@ if (FileSystem::isReadable($logFile)) {
 }
 ```
 
+### isWithin
+
+```php
+static isWithin(string $path, string $basePath): bool
+```
+
+Returns `true` if the path is physically located within the specified base directory.
+
+```php
+if (FileSystem::isWithin($userPath, storage_path('uploads'))) {
+    // Safe to process
+}
+```
+
 ## Reading Files
 
 ### get

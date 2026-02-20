@@ -29,7 +29,8 @@ This directory contains documentation for the various helper classes and utiliti
 - [Data](data-helper.md) - Unified data wrapper for collections.
 - [DTO](dto-helper.md) - Data Transfer Object base class.
 - [Benchmark](benchmark-helper.md) - Execution time and memory benchmarking.
-- [Macroable](macroable-helper.md) - Trait for adding runtime methods to classes.
+- [Macroable](helpers/macroable.md) - Trait for adding runtime methods to classes.
+- [Mixins](helpers/mixins.md) - Trait for bulk-registering macros from a class or object.
 - [Lottery](lottery-helper.md) - Probabilistic operations and weighted selection.
 
 ## System & Security

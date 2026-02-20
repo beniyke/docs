@@ -5,7 +5,7 @@ Welcome to the Anchor Framework documentation. This guide will help you get star
 ## Why Anchor?
 
 - **Anchor** provides stability and a solid foundation for your applications
-- You **ship code** with confidence, knowing it's production-ready
+- You **ship code** with confidence, knowing it's built for stability and scale
 - **Dock** CLI equips you with powerful tools to prepare your application for deployment
 
 Learn more about the [philosophy](introduction.md#philosophy) behind the framework.
@@ -52,13 +52,16 @@ Learn more about the [philosophy](introduction.md#philosophy) behind the framewo
 
 - [Mail](mail.md) - Sending emails
 - [Queues](queues.md) - Background job processing
-- [Notifications](notifications.md) - Sending notifications
-- [Scheduling](queues.md#scheduling-jobs) - Task scheduling
+- [Notify](notify.md) - Core notification system
+- [Notification](notification.md) - In-app notification management
+- [Scheduling](scheduling.md) - Recurring Task scheduling (Cron)
+- [Activity Logging](activity.md) - Behavioral Tracking and Analytics
 
 ## Development
 
 - [CLI (Dock)](cli.md) - Command-line interface
 - [Package Management](package-management.md) - Installing and Managing Packages
+- [Package Ecosystem](ecosystem.md) - Verified Package Directory
 - [Helpers](helpers.md) - Available helper functions
 - [Testing](testing.md) - Testing your application
 - [AI Agent Guide](Agents.md) - Guidelines for AI development

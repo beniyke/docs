@@ -4,7 +4,7 @@ Anchor includes a variety of global "helper" PHP functions. Many of these functi
 
 ## Debug & Logging
 
-#### dd
+### dd
 
 ```php
 dd(...$vars): void
@@ -14,7 +14,7 @@ Dumps the given variables to the browser and stops script execution immediately.
 
 - **Use Case**: Quick debugging to inspect state at a specific point in the lifecycle.
 
-#### dump
+### dump
 
 ```php
 dump(...$vars): void
@@ -27,7 +27,7 @@ dump($users);
 dump($user, $posts); // Multiple variables
 ```
 
-#### logger
+### logger
 
 ```php
 logger(string $file): FileLogger
@@ -35,9 +35,11 @@ logger(string $file): FileLogger
 
 Retrieves a logger instance targeting a specific file in `App/storage/logs/`.
 
-- **Example**: `logger('debug.log')->info('Task started');`.
+> While this helper exists, it is recommended to use the [Log Facade](helpers/log.md) for more consistent logging.
 
-#### benchmark
+- **Example**: `Log::channel('debug')->info('Task started');`.
+
+### benchmark
 
 ```php
 benchmark(string $key, ?callable $callback = null): mixed
@@ -49,7 +51,7 @@ Measures the execution time of a specific block of code.
 
 ## Container & Configuration
 
-#### container
+### container
 
 ```php
 container(): object
@@ -57,7 +59,7 @@ container(): object
 
 Returns the singleton instance of the IoC container.
 
-#### auth
+### auth
 
 ```php
 auth(): AuthServiceInterface
@@ -65,7 +67,7 @@ auth(): AuthServiceInterface
 
 Returns the authentication service instance.
 
-#### resolve
+### resolve
 
 ```php
 resolve(string $namespace): object
@@ -99,7 +101,7 @@ $dbHost = env('DB_HOST', 'localhost');
 
 ## HTTP & Requests
 
-#### request
+### request
 
 ```php
 request(): Request
@@ -109,7 +111,7 @@ Returns the current request instance.
 
 - **Example**: `request()->ip();`.
 
-#### response
+### response
 
 ```php
 response(string $data = '', int $status = 200, array $headers = []): Response
@@ -119,7 +121,7 @@ Creates a new response object.
 
 - **Example**: `return response('Not Found', 404);`.
 
-#### redirect
+### redirect
 
 ```php
 redirect(string $url = '', array $params = [], bool $internal = true): Response
@@ -129,7 +131,7 @@ Creates a redirect response.
 
 - **Example**: `return redirect(url('home'));`.
 
-#### url
+### url
 
 ```php
 url(?string $path = null, array $query = []): string
@@ -195,7 +197,7 @@ $response = curl()
 
 ## Session & Flash Messages
 
-#### session
+### session
 
 ```php
 session(?string $key = null, mixed $value = null): mixed
@@ -205,7 +207,7 @@ Retrieves or sets a session value. Returns the session manager if no key is prov
 
 - **Example**: `session('user_id', 1);`.
 
-#### flash
+### flash
 
 ```php
 flash(?string $type = null, mixed $message = null): mixed
@@ -227,7 +229,7 @@ Get the current CSRF token.
 $token = csrf_token();
 ```
 
-#### encrypt / decrypt
+### encrypt / decrypt
 
 ```php
 encrypt(mixed $value): string
@@ -236,7 +238,7 @@ decrypt(string $value): mixed
 
 Helpers for quick symmetric encryption.
 
-#### enc
+### enc
 
 ```php
 enc(string $driver = 'string'): Encryptor
@@ -248,7 +250,7 @@ Returns an encrypter instance for advanced operations like password hashing.
 
 ## Files & Storage
 
-#### filesystem
+### filesystem
 
 ```php
 filesystem(): FileSystem
@@ -256,7 +258,7 @@ filesystem(): FileSystem
 
 Returns a filesystem helper instance for file operations.
 
-#### mimes
+### mimes
 
 ```php
 mimes(): Mimes
@@ -264,7 +266,7 @@ mimes(): Mimes
 
 Returns a MIME type helper for guessing file types and extensions.
 
-#### cache
+### cache
 
 ```php
 cache(string $path): Cache
@@ -272,7 +274,7 @@ cache(string $path): Cache
 
 Returns a cache instance for a specific key or namespace.
 
-#### image
+### image
 
 ```php
 image(?string $image_path = null): Image
@@ -280,7 +282,7 @@ image(?string $image_path = null): Image
 
 Returns an image processing helper.
 
-#### validate_upload
+### validate_upload
 
 ```php
 validate_upload(array $file, array $options): bool
@@ -288,7 +290,7 @@ validate_upload(array $file, array $options): bool
 
 Checks if an uploaded file meets specific criteria (type, size).
 
-#### upload_image / upload_document / upload_archive
+### upload_image / upload_document / upload_archive
 
 ```php
 upload_image(array $file, string $destination, int $maxSize = 5242880): string
@@ -300,7 +302,7 @@ Securely validates and moves uploaded files to a destination.
 
 ## Views & Assets
 
-#### assets
+### assets
 
 ```php
 assets(string $file): string
@@ -312,7 +314,7 @@ Generates a URL for a public asset with automatic cache-busting.
 
 See [Assets Helper](html-helpers.md#assets) for more details on the underlying class and cache-busting behavior.
 
-#### component / html
+### component / html
 
 ```php
 component(string $name): Component
@@ -323,7 +325,7 @@ Helpers for generating HTML components and strings fluently.
 
 ## Arrays
 
-#### arr
+### arr
 
 ```php
 arr(mixed $collection = null): ArrayCollection|Collections
@@ -335,7 +337,7 @@ Creates a collection object for fluent array manipulation.
 
 ## Strings
 
-#### str / text
+### str / text
 
 ```php
 str(mixed $string = null): Str|StrCollection
@@ -346,7 +348,7 @@ Helpers for fluent string and text manipulation.
 
 - **Example**: `str('hello world')->slug();` -> `"hello-world"`.
 
-#### plural / inflect
+### plural / inflect
 
 ```php
 plural(string $value): string
@@ -359,7 +361,7 @@ Helpers for English word inflection.
 
 ## Date & Time
 
-#### datetime
+### datetime
 
 ```php
 datetime(mixed $date = null): DateTimeHelper
@@ -371,7 +373,7 @@ Returns a date-time helper for parsing, formatting, and manipulating dates.
 
 ## Money & Formatting
 
-#### money
+### money
 
 ```php
 money(int|float $amount, string $currency = 'USD'): Money
@@ -379,7 +381,7 @@ money(int|float $amount, string $currency = 'USD'): Money
 
 Creates a Money object for handling currency values securely.
 
-#### money_parse / money_format
+### money_parse / money_format
 
 ```php
 money_parse(string $money, ?string $currency = null): Money
@@ -388,7 +390,7 @@ money_format(Money $money, ?string $locale = null): string
 
 Helpers for parsing and formatting money values.
 
-#### currency
+### currency
 
 ```php
 currency(string $code): Currency
@@ -396,7 +398,7 @@ currency(string $code): Currency
 
 Returns a Currency instance for a specific currency code.
 
-#### number
+### number
 
 ```php
 number(?int $num = null): Number
@@ -418,7 +420,7 @@ $format = format($data);
 
 ## Mail & Notifications
 
-#### mailer
+### mailer
 
 ```php
 mailer(Mailable $mail): bool
@@ -426,7 +428,7 @@ mailer(Mailable $mail): bool
 
 Dispatches an email.
 
-#### notify
+### notify
 
 ```php
 notify(string $channel): NotificationBuilder
@@ -436,7 +438,7 @@ Starts a notification flow for a specific channel (email, sms, etc.).
 
 ## CLI & Execution
 
-#### dock
+### dock
 
 ```php
 dock(?string $command = null): CommandRunner
@@ -444,7 +446,7 @@ dock(?string $command = null): CommandRunner
 
 Executes CLI commands programmatically.
 
-#### queue / job
+### queue / job
 
 ```php
 queue(string $namespace, mixed $payload, string $identifier = 'default'): QueuedJob
@@ -453,7 +455,7 @@ job(): QueueDispatcherInterface
 
 Helpers for background job processing.
 
-#### defer / defer_as
+### defer / defer_as
 
 ```php
 defer(mixed $callbacks): void
@@ -474,7 +476,7 @@ $deferrer = deferrer();
 
 ## Routing
 
-#### route_name
+### route_name
 
 ```php
 route_name(string $name): string
@@ -484,7 +486,7 @@ Retrieves a route path by its defined name.
 
 ## Miscellaneous
 
-#### data / validator
+### data / validator
 
 ```php
 data(array $payload): Data
@@ -492,8 +494,6 @@ validator(): Validator
 ```
 
 Helpers for creating data objects and validation instances.
-
-## Miscellaneous
 
 ### Wave
 

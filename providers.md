@@ -13,8 +13,15 @@ Service Providers are the central place to configure and bootstrap services in t
 
 ## Lifecycle
 
-- **Registration** - The framework iterates over the list in `App/Config/providers.php` and calls each provider's `register()` method. This is where you bind singletons, factories, or simple values to the container.
+- **Registration** - The framework first registers **Core System Providers** (defined internally in the `Kernel`), followed by **Application Providers** listed in `App/Config/providers.php`.
 - **Boot** - After all providers have been registered, the framework calls `boot()` on each provider (if the method exists). This is the place for actions that depend on other services being available, such as eager‑loading relationships or event listeners.
+
+## System vs Application Providers
+
+Anchor maintains a clear separation between framework core logic and application logic:
+
+- **System Providers**: Managed internally by the `Kernel`. These provide essential infrastructure like Events, Deferred Tasks, Databases, and Security. They are "non-negotiable" and ensure the framework functions even if application config is modified.
+- **Application Providers**: Defined by you in `App/Config/providers.php`. These are used for your business logic, feature modules, and third-party integrations.
 
 ## Generating Providers
 

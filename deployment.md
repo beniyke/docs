@@ -46,14 +46,23 @@ php dock
 
 ### Install System Packages
 
-Ensure essential system packages are installed for production.
+Ensure essential system packages and functional modules are installed for production.
 
 ```bash
-# Background job processing
+# Core: Background job processing
 php dock package:install Queue --system --force
 
-# System notifications
+# Core: System notifications (Drivers)
 php dock package:install Notify --system --force
+
+# Security: Authorization (RBAC/ABAC)
+php dock package:install Permit --packages --force
+
+# Analytics: Activity & Audit Tracking
+php dock package:install Activity --packages --force
+
+# Communication: In-app Notifications
+php dock package:install Notification --packages --force
 ```
 
 ## Configuration

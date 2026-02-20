@@ -59,7 +59,7 @@ Substitute the first segment of a URL with another module name.
 Assigns a readable name to a module/path combination.
 
 - **Use Case**: Generating URLs in code without hardcoding paths. If the underlying path changes, you only update it in the config.
-- **Example**: `url()->routeByName('dashboard')`.
+- **Example**: `url(route_name('dashboard'))` or `request()->fullRouteByName('dashboard')`.
 
 ## Middleware Configuration
 

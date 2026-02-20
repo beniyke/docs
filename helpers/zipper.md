@@ -212,7 +212,7 @@ function restoreFromBackup(string $backupPath, string $targetDir): bool
         ->extract();
 
     if (!$result->isSuccess()) {
-        logger()->error("Restore failed", ['error' => $result->getMessage()]);
+        Log::error("Restore failed", ['error' => $result->getMessage()]);
         return false;
     }
 

@@ -201,11 +201,11 @@ Seeders are stored in the directory configured in your database configuration (d
 
 ## Best Practices
 
-1. **Keep seeders idempotent**: Check if data exists before creating
-2. **Use transactions**: Wrap in transactions for data integrity
-3. **Seed in order**: Respect foreign key dependencies
-4. **Separate test and production**: Use different seeders for different environments
-5. **Use meaningful data**: Create realistic test data
+- **Keep seeders idempotent**: Check if data exists before creating
+- **Use transactions**: Wrap in transactions for data integrity
+- **Seed in order**: Respect foreign key dependencies
+- **Separate test and production**: Use different seeders for different environments
+- **Use meaningful data**: Create realistic test data
 
 ## Checking Before Seeding
 

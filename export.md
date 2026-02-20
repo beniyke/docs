@@ -23,7 +23,7 @@ php dock package:install Export --packages
 
 This will automatically:
 
-- Run database migrations for `export` table.
+- Run the migration for Export tables.
 - Register the `ExportServiceProvider`.
 - Publish the configuration file.
 
@@ -253,8 +253,6 @@ $trends = $analytics->getDailyTrends(7);
  */
 ```
 
-```
-
 ## Service API Reference
 
 ### Export (Facade)
@@ -307,10 +305,13 @@ $trends = $analytics->getDailyTrends(7);
 | "Exporter class not found" | Provided class name is incorrect or misspelled. | Verify the FQCN in the `make()` call.      |
 | "Format not supported"     | Attempting to use unconfigured format.          | Check `App/Config/export.php`.             |
 
+## Automation
+
+The Export package manages its own file cleanup via the `ExportCleanupSchedule`. It runs the `export:cleanup` command daily to purge files older than the configured retention period.
+
 ## Security Best Practices
 
 - **Access Control**: Always check if the user has permission to view the data before initiating an export.
 - **Data Sanitization**: Exporters should only query and map fields that the user is authorized to see.
 - **Retention Policy**: Regularly run `export:cleanup` to ensure sensitive data doesn't sit on the disk indefinitely.
 - **Queue Isolation**: Use a dedicated queue for exports to prevent large reports from blocking critical system notifications.
-```

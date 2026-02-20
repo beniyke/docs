@@ -92,17 +92,18 @@ php dock migration:run
 
 ### Install Essential Packages
 
-Install core system packages to enable full functionality:
+Install core system packages and functional modules to enable full framework capability:
 
 ```bash
-# Background job processing
+# Core System
 php dock package:install Queue --system
-
-# Notifications and Alerts
 php dock package:install Notify --system
-
-# Developer Toolbar & Debugger
 php dock package:install Debugger --system
+
+# Essential Functional Modules
+php dock package:install Permit --packages
+php dock package:install Activity --packages
+php dock package:install Notification --packages
 ```
 
 ### Start the Engine

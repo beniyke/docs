@@ -1,6 +1,6 @@
 # Money
 
-The Money provides a robust, production-ready solution for handling monetary values in PHP. It uses arbitrary precision arithmetic (BCMath) to avoid floating-point errors and ensures immutability for thread-safe operations.
+The Money package provides an immutable, high-precision solution for financial arithmetic within the Anchor Framework. By leveraging arbitrary precision math (BCMath), it eliminates floating-point errors and ensures absolute reliability for monetary operations.
 
 ## Key Features
 
@@ -17,6 +17,21 @@ The Money provides a robust, production-ready solution for handling monetary val
 
 - PHP 8.1+
 - BCMath extension
+
+## Installation
+
+Money is a **package** that requires installation before use.
+
+### Install the Package
+
+```bash
+php dock package:install Money --packages
+```
+
+This will automatically:
+
+- Register the `MoneyServiceProvider`
+- Enable global helper functions (`money()`, `money_minor()`)
 
 ## Quick Start
 
@@ -90,20 +105,14 @@ $money = Money::fromArray([
 
 ## Global Helpers
 
-The Money package provides several convenient global helpers for common operations.
+The Money package provides convenient global helpers for creating Money instances.
 
 ```php
-// Create money (Int treated as cents, Float as dollars)
+// Create money from major units (e.g., dollars)
 $money = money(100.50, 'USD');
 
-// Parse money from string
-$money = money_parse('$120,000.50', 'USD');
-
-// Format money
-$string = money_format($money, 'en_US');
-
-// Get currency instance
-$currency = currency('USD');
+// Create money from minor units (e.g., cents)
+$money = money_minor(1050, 'USD'); // $10.50
 ```
 
 ## Arithmetic Operations
@@ -224,7 +233,7 @@ $parts = $money->allocateTo(3);
 // [$0.34, $0.33, $0.33] - remainder distributed to first parts
 ```
 
-**Example**
+### Fair Allocation
 
 ```php
 // Split bill among friends
@@ -397,15 +406,15 @@ $result = $money->roundDown(1.5);  // Same as multiplyAndRoundDown
 
 ### Rounding Mode Comparison
 
-| Method | 1.4 | 1.5 | 1.6 | Description |
-| - | | | | - |
-| `multiplyAndRoundUp()` | 2 | 2 | 2 | Always round up (ceiling) |
-| `multiplyAndRoundDown()` | 1 | 1 | 1 | Always round down (floor) |
-| `multiplyAndRoundHalfUp()` | 1 | 2 | 2 | Round .5 up (default) |
-| `multiplyAndRoundHalfDown()` | 1 | 1 | 2 | Round .5 down |
-| `multiplyAndRoundHalfEven()` | 1 | 2 | 2 | Banker's rounding |
+|Method|1.4|1.5|1.6|Description|
+|:---|:---|:---|:---|:---|
+|`multiplyAndRoundUp()`|2|2|2|Always round up (ceiling)|
+|`multiplyAndRoundDown()`|1|1|1|Always round down (floor)|
+|`multiplyAndRoundHalfUp()`|1|2|2|Round .5 up (default)|
+|`multiplyAndRoundHalfDown()`|1|1|2|Round .5 down|
+|`multiplyAndRoundHalfEven()`|1|2|2|Banker's rounding|
 
-**Example**
+### Example: Tax and Rounds
 
 ```php
 // Tax calculation (conservative - round up)
@@ -561,38 +570,38 @@ $max = Money::max(
 
 30 major world currencies:
 
-| Code | Name | Symbol |
-| - | | |
-| USD | US Dollar | $ |
-| EUR | Euro | € |
-| GBP | British Pound | £ |
-| JPY | Japanese Yen | ¥ |
-| CNY | Chinese Yuan | ¥ |
-| CAD | Canadian Dollar | C$ |
-| AUD | Australian Dollar | A$ |
-| CHF | Swiss Franc | CHF |
-| INR | Indian Rupee | ₹ |
-| BRL | Brazilian Real | R$ |
-| MXN | Mexican Peso | MX$ |
-| ZAR | South African Rand | R |
-| RUB | Russian Ruble | ₽ |
-| KRW | South Korean Won | ₩ |
-| SGD | Singapore Dollar | S$ |
-| HKD | Hong Kong Dollar | HK$ |
-| SEK | Swedish Krona | kr |
-| NOK | Norwegian Krone | kr |
-| DKK | Danish Krone | kr |
-| PLN | Polish Zloty | zł |
-| THB | Thai Baht | ฿ |
-| IDR | Indonesian Rupiah | Rp |
-| MYR | Malaysian Ringgit | RM |
-| PHP | Philippine Peso | ₱ |
-| NZD | New Zealand Dollar | NZ$ |
-| TRY | Turkish Lira | ₺ |
-| AED | UAE Dirham | د.إ |
-| SAR | Saudi Riyal | ر.س |
-| NGN | Nigerian Naira | ₦ |
-| EGP | Egyptian Pound | E£ |
+|Code|Name|Symbol|
+|:---|:---|:---|
+|USD|US Dollar|$|
+|EUR|Euro|€|
+|GBP|British Pound|£|
+|JPY|Japanese Yen|¥|
+|CNY|Chinese Yuan|¥|
+|CAD|Canadian Dollar|C$|
+|AUD|Australian Dollar|A$|
+|CHF|Swiss Franc|CHF|
+|INR|Indian Rupee|₹|
+|BRL|Brazilian Real|R$|
+|MXN|Mexican Peso|MX$|
+|ZAR|South African Rand|R|
+|RUB|Russian Ruble|₽|
+|KRW|South Korean Won|₩|
+|SGD|Singapore Dollar|S$|
+|HKD|Hong Kong Dollar|HK$|
+|SEK|Swedish Krona|kr|
+|NOK|Norwegian Krone|kr|
+|DKK|Danish Krone|kr|
+|PLN|Polish Zloty|zł|
+|THB|Thai Baht|฿|
+|IDR|Indonesian Rupiah|Rp|
+|MYR|Malaysian Ringgit|RM|
+|PHP|Philippine Peso|₱|
+|NZD|New Zealand Dollar|NZ$|
+|TRY|Turkish Lira|₺|
+|AED|UAE Dirham|د.إ|
+|SAR|Saudi Riyal|ر.س|
+|NGN|Nigerian Naira|₦|
+|EGP|Egyptian Pound|E£|
 
 ## Edge Cases
 
@@ -666,7 +675,7 @@ $parts = $money->allocateTo(3);
 
 ## Best Practices
 
-**Always Store as Minor Units**
+### Always Store as Minor Units
 
 ```php
 // ✅ Good - Store cents in database
@@ -676,7 +685,7 @@ $product->price = 10000; // $100.00
 $product->price = 100.00;
 ```
 
-**Use Money Objects Throughout**
+### Use Money Objects Throughout
 
 ```php
 // ✅ Good
@@ -692,7 +701,7 @@ public function calculateTotal(float $price, int $quantity): float
 }
 ```
 
-**Handle Currency Mismatches**
+### Handle Currency Mismatches
 
 ```php
 // ✅ Good
@@ -705,7 +714,7 @@ $total = $price->add($tax);
 $total = $price->add($tax); // May throw unexpectedly
 ```
 
-**Use Allocation for Splitting**
+### Use Allocation for Splitting
 
 ```php
 // ✅ Good - Fair distribution
@@ -715,7 +724,7 @@ $parts = $total->allocateTo(3);
 $perPerson = $total->divide(3);
 ```
 
-**Format Only for Display**
+### Format Only for Display
 
 ```php
 // ✅ Good

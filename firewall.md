@@ -1,4 +1,4 @@
-# Firewall System
+# Firewall
 
 The Firewall system provides a robust security layer for your application, handling request throttling, blocking, IP filtering, and audit trails for suspicious activities.
 
@@ -71,11 +71,44 @@ Blocks access based on a blacklist of IPs, devices, platforms, or browsers.
 
 Restricts application access to specific allowed hostnames to prevent HTTP Host header attacks.
 
-### MaintenanceFirewall
+#### Maintenance Mode
 
-Restricts access when the application is in maintenance mode, while allowing access to whitelisted IPs or devices (e.g., for developers).
+The Firewall handles the application's maintenance mode state. When enabled, it blocks all non-excepted requests with a `503 Service Unavailable` response.
 
-## Configuration
+#### Global Maintenance
+
+Enable via environment or config:
+```php
+'maintenance' => [
+    'enable' => true,
+    // ...
+]
+```
+
+#### Granular Maintenance
+
+Anchor introduces **Granular Maintenance**, allowing you to lock down specific system resources without affecting the rest of the application. This is powered by the [Route Context](route-context.md) system.
+
+```php
+'maintenance' => [
+    'enable' => false, // Global is OFF
+    'locked_resources' => [
+        'payments', // Only the payments resource is locked
+        'billing',
+    ],
+]
+```
+
+When a resource is locked:
+- Requests matching the `resource` context (e.g., `App\Billing\Controllers\*`) are blocked.
+- Users receive a specific message: "The [resource] module is temporarily under maintenance."
+- Non-locked resources continue to function normally.
+
+This is ideal for performing database migrations or updates on specific modules while keeping the main application online.
+
+---
+
+## Troubleshooting
 
 Configure the firewall in `App/Config/firewall.php`.
 

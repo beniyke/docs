@@ -263,6 +263,28 @@ The `getCalendarEvents` method returns an array of events including availability
 - **SlotBooking**: Persists the reservation. Casts `status` to `BookingStatus`.
 - **ScheduleType**: `Availability`, `Appointment`, `Blocked`, `Custom`.
 - **BookingStatus**: `Pending`, `Confirmed`, `Cancelled`, `Completed`.
+ 
+## Automation
+ 
+The Slot package automatically registers its reminder task in the framework scheduler. This ensures timely delivery of notifications to both hosts and guests.
+ 
+```php
+// packages/Slot/Schedules/BookingReminderSchedule.php
+namespace Slot\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class BookingReminderSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('slot:remind')
+            ->everyThirtyMinutes();
+    }
+}
+```
 
 ## Technical Summary
 

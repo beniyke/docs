@@ -8,11 +8,11 @@ Anchor embraces a maritime metaphor that reflects its core purpose and design ph
 
 ### Stability & Foundation
 
-Just as an anchor provides stability to a ship, the **Anchor Framework** gives you a solid, reliable foundation to build upon. It keeps your application grounded with robust architecture, proven patterns, and production ready features, ensuring your codebase remains stable even as your project grows.
+Just as an anchor provides stability to a ship, the **Anchor Framework** gives you a solid, reliable foundation to build upon. It keeps your application grounded with robust architecture, proven patterns, and hardened features, ensuring your codebase remains stable even as your project grows.
 
 ### Shipping Code
 
-In software development, we don't just _deploy_ code, we **ship** it. The Anchor Framework is designed to help you confidently ship quality code to production. Every feature, from the ORM to the queue system, is built with production readiness in mind.
+In software development, we don't just _deploy_ code, we **ship** it. The Anchor Framework is designed to help you confidently ship quality code to production. Every feature, from the ORM to the queue system, is built for scale and reliability.
 
 ### Dock - CLI Tooling
 

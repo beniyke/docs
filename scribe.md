@@ -24,7 +24,7 @@ php dock package:install Scribe --packages
 This command will:
 
 - Publish the `scribe.php` configuration file.
-- Create necessary database tables (`scribe_*`).
+- Run the migration for Scribe tables.
 - Register the `ScribeServiceProvider`.
 
 ## Basic Usage
@@ -148,14 +148,8 @@ $trends = Scribe::analytics()->getPostTrends($post, days: 30);
 $topPosts = Scribe::analytics()->getTopPosts(limit: 5);
 ```
 
-```
-
 ## Integration
 
 - **Media**: Use the `Media` facade to handle featured images and post assets via `attachMedia()`.
 - **Audit**: Automatically logs publishing and scheduling events if installed.
 - **Link**: Generate signed URLs for private or early-access post previews.
-
-> [!NOTE]
-> Scribe maintains strict **Architecture Isolation**. It never imports models from other packages, ensuring a modular and stable foundation.
-```

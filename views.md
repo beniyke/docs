@@ -227,18 +227,100 @@ This looks in `Views/Templates/inc/navigation.php`.
 
 ## View Methods
 
-#### asView
+### asView
 
 ```php
-asView(string $view, array $data = []): Response
+asView(string $view, array $data = [], ?callable $callback = null): Response
 ```
 
 Renders a view template from the current module's `Views/Templates` directory.
 
-- **Use Case**: The standard way to return HTML from a controller.
-- **Example**: `return $this->asView('profile', ['user' => $user]);`.
+- **Example**:
 
-#### section
+```php
+return $this->asView('profile', ['user' => $user], function() use ($user) {
+    return !$user->is_active; // If true, renders default 'deny' template
+});
+```
+
+#### Real World Use Cases for `asView` Callback
+
+The `asView` callback is a powerful "last-mile" security check. It allows you to fetch your data first, and then decide based on that specific data if the user should actually see the page.
+
+#### Scenario A: Resource Ownership Check (Boolean)
+
+Use a boolean return to trigger the default `deny` template if the user doesn't own the resource being edited.
+
+```php
+public function edit(string $postId)
+{
+    $post = Post::find($postId);
+
+    return $this->asView('edit-post', compact('post'), function() use ($post) {
+        // If this returns TRUE, the view switches to the 'deny' template automatically.
+        return $post->author_id !== $this->auth->user()->id;
+    });
+}
+```
+
+#### Scenario B: Feature Gating / Upselling (Array)
+
+Use an array return to specify a custom template, such as an "Upgrade Required" page for premium features.
+
+```php
+public function analytics()
+{
+    $stats = $this->statsService->getDashboardData();
+
+    return $this->asView('dashboard', compact('stats'), function() {
+        if (! $this->auth->user()->isPro()) {
+            // Return an array to specify exactly WHICH template to show instead.
+            return [
+                'value'    => true, 
+                'template' => 'errors/upgrade-required' 
+            ];
+        }
+        
+        return false; // Access granted
+    });
+}
+```
+
+## Extensibility (Macros & Mixins)
+
+The View Engine is `Macroable`, allowing you to add custom helper methods dynamically.
+
+### Adding a Macro
+
+```php
+use Core\Views\ViewInterface;
+
+// In a Service Provider boot method
+container()->extend(ViewInterface::class, function($view) {
+    $view::macro('uppercase', function($value) {
+        return strtoupper($value);
+    });
+    return $view;
+});
+```
+
+### Using a Mixin
+
+Group multiple helpers into a single class:
+
+```php
+class StringMixins {
+    public function bold() {
+        return function($value) {
+            return "<strong>{$value}</strong>";
+        };
+    }
+}
+
+$view->mixin(new StringMixins());
+```
+
+### section
 
 ```php
 section(string $name): string
@@ -248,7 +330,7 @@ Renders the content of a defined section.
 
 - **Use Case**: Used in layouts to placeholder where content from child views should be injected.
 
-#### extend
+### extend
 
 ```php
 extend(string $layout): void
@@ -258,7 +340,7 @@ Specifies which layout the current view should inherit from.
 
 - **Example**: `<?php echo $this->extend('layouts.main'); ?>`.
 
-#### denyAccessIf
+### denyAccessIf
 
 ```php
 denyAccessIf(bool $condition, string $template = 'deny'): self
@@ -266,9 +348,14 @@ denyAccessIf(bool $condition, string $template = 'deny'): self
 
 Conditionally swaps the current template with another (usually an error or "access denied" template) if the condition is true.
 
-- **Example**: `<?php $this->denyAccessIf(!$user->isAdmin(), 'errors.403'); ?>`.
+- **Note**: While available in the view, it's most commonly used via the callback in `asView()`.
+- **Example**:
 
-#### include
+```php
+<?php $this->denyAccessIf(!$user->isAdmin(), 'errors.403'); ?>
+```
+
+### include
 
 ```php
 include(string $partial, array $data = []): string
@@ -278,7 +365,7 @@ Includes a partial view from any location within the templates directory.
 
 - **Example**: `<?php echo $this->include('partials/header', ['title' => 'Home']); ?>`.
 
-#### inc
+### inc
 
 ```php
 inc(string $file, array $data = []): string
@@ -288,7 +375,7 @@ A shortcut to include files specifically from the `inc/` subdirectory.
 
 - **Example**: `<?php echo $this->inc('navbar'); ?>` loads `Views/Templates/inc/navbar.php`.
 
-#### modal
+### modal
 
 ```php
 modal(string $file, array $data = []): string
@@ -298,7 +385,7 @@ A shortcut to include files specifically from the `modals/` subdirectory.
 
 - **Example**: `<?php echo $this->modal('delete-confirm'); ?>`.
 
-#### escape
+### escape
 
 ```php
 escape(string $value): string
@@ -308,7 +395,7 @@ Escapes HTML entities to prevent Cross-Site Scripting (XSS).
 
 - **Security Note**: **Always** use this when echoing data provided by users.
 
-#### json
+### json
 
 - **`json(mixed $data)`**: Safely encodes data to JSON for use in JavaScript.
 
@@ -318,7 +405,7 @@ Escapes HTML entities to prevent Cross-Site Scripting (XSS).
   </script>
 ```
 
-#### Navigation & Route Helpers
+### Navigation & Route Helpers
 
 - **`active(string $path, string $class = 'active', string $default = '')`**: Returns a class string if the current URI matches the path.
 
@@ -334,7 +421,7 @@ Escapes HTML entities to prevent Cross-Site Scripting (XSS).
   <?php endif; ?>
   ```
 
-#### Context & Environment Helpers
+### Context & Environment Helpers
 
 - **`user()`**: Access the currently authenticated user object.
 
@@ -408,17 +495,15 @@ Cleanly render boolean attributes:
 <input type="email" <?php echo $this->required(true); ?>>
 ```
 
-## CSS Class & Style Helpers
+### Context & Route Helpers
 
-### Class Helper
+Access route metadata and permissions directly within your views.
 
-The `class` method accepts an array of classes where the key is the class name and the value is a boolean condition:
-
-```php
-<div <?php echo $this->class(['p-4', 'bg-red' => $hasError, 'text-bold' => $isUrgent]); ?>>
-    <!-- Rendered: class="p-4 bg-red text-bold" if both conditions are true -->
-</div>
-```
+- **`context(string $key, mixed $default = null)`**: Get route context values (domain, entity, resource, action).
+- **`canAccessAction(string $action)`**: Check if the user has permission for an action on the current resource (e.g., `edit`).
+- **`isResourceActive(string $name, string $class = 'active', string $default = '')`**: Returns `$class` if the current resource matches `$name`.
+- **`getRouteTitle(string $default)`**: Returns a title based on route permissions.
+- **`getBreadcrumbs()`**: Returns an array of breadcrumbs for the current resource/action.
 
 ### Style Helper
 
@@ -522,11 +607,16 @@ Store routes for redirecting back after form submission:
 <?php echo $this->referer(); ?>
 ```
 
-## Global Helper Functions
+### Global Helper Functions
 
 These are available everywhere:
 
-### Assets
+#### HTML & Components
+
+- **`html()`**: Returns the `HtmlBuilder` for fluent element generation.
+- **`component(string $name)`**: Creates an `HtmlComponent` instance for reusable UI fragments.
+
+#### Assets
 
 ```php
 <link rel="stylesheet" href="<?php echo assets('css/app.css'); ?>">

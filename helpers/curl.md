@@ -428,7 +428,7 @@ Executes callback if the request failed.
 ```php
 $response = curl()->get($url)->send()
     ->onError(function ($response) {
-        logger()->error('Request failed', [
+        Log::error('Request failed', [
             'code' => $response->httpCode(),
             'message' => $response->message()
         ]);
@@ -493,7 +493,7 @@ $batch = Curl::pool(fn() => [
     'notifications' => curl()->withToken($token)->get("https://api.com/users/{$id}/notifications"),
 ])
 ->progress(function ($key, $response) {
-    logger()->info("Fetched {$key}");
+    Log::info("Fetched {$key}");
 })
 ->send();
 
@@ -512,16 +512,16 @@ $response = curl()
 
 if ($response->isTransportError()) {
     // Network/DNS/Timeout error
-    logger()->critical('Transport error: ' . $response->message());
+    Log::critical('Transport error: ' . $response->message());
 } elseif ($response->serverError()) {
     // 5xx error
-    logger()->error('Server error: ' . $response->httpCode());
+    Log::error('Server error: ' . $response->httpCode());
 } elseif ($response->clientError()) {
     // 4xx error
     if ($response->notFound()) {
         throw new NotFoundException();
     }
-    logger()->warning('Client error: ' . $response->httpCode());
+    Log::warning('Client error: ' . $response->httpCode());
 } else {
     // Success
     $data = $response->json();

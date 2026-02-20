@@ -1,6 +1,6 @@
 # Guide
 
-The **Guide** package provides a robust FAQ and knowledge base system for the Anchor Framework. It features hierarchical categories, rich media support, full-text search, and helpfulness analytics.
+The **Guide** package provides a comprehensive FAQ and knowledge base system for the Anchor Framework. It features hierarchical categories, rich media support, full-text search, and helpfulness analytics.
 
 ## Core Capabilities
 
@@ -23,7 +23,7 @@ php dock package:install Guide --packages
 This command will:
 
 - Publish the `guide.php` configuration file.
-- Create necessary database tables (`guide_*`).
+- Run the migration for Guide tables.
 - Register the `GuideServiceProvider`.
 
 ## Basic Usage

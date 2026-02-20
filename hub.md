@@ -23,7 +23,7 @@ php dock package:install Hub --packages
 
 This will automatically:
 
-- Run database migrations for all Hub tables.
+- Run the migration for Hub tables.
 - Register the `HubServiceProvider`.
 - Publish the configuration file.
 
@@ -202,16 +202,23 @@ Hub dispatches events for notifications and integrations:
 
 ```php
 use Hub\Events\UserMentioned;
-use Ally\Ally;
+use Hub\Notifications\MentionNotification;
+use Notify\Notify;
+use Helpers\Data;
 
 class SendMentionNotification
 {
     public function handle(UserMentioned $event): void
     {
-        Ally::send(
-            User::find($event->mentionedUserId),
-            new MentionNotification($event->message)
-        );
+        $user = User::find($event->mentionedUserId);
+
+        Notify::email(MentionNotification::class, Data::make([
+            'email' => $user->email,
+            'name' => $user->name,
+            'mentioner_name' => $event->message->user->name,
+            'thread_title' => $event->message->thread->title,
+            'message_preview' => $event->message->body,
+        ]));
     }
 }
 ```
@@ -402,17 +409,25 @@ Audit::make()
 | `tomorrow(h, m)`     | Set tomorrow at time   |
 | `daily() / weekly()` | Set repeat interval    |
 | `create()`           | Create reminder        |
-
-## Processing Reminders
-
-Run the reminder processor via command:
-
-```bash
-php dock hub:remind
-```
-
-Schedule this command via cron (every minute recommended):
-
-```bash
-* * * * * cd /path/to/project && php dock hub:remind >> /dev/null 2>&1
+ 
+## Automation
+ 
+The Hub package automatically registers its reminder dispatcher in the framework's central scheduler.
+ 
+```php
+// packages/Hub/Schedules/HubSchedule.php
+namespace Hub\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class HubSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('hub:remind')
+            ->everyThirtyMinutes();
+    }
+}
 ```

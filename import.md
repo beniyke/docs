@@ -23,7 +23,7 @@ php dock package:install Import --packages
 
 This will automatically:
 
-- Run database migrations for `import_*` tables.
+- Run the migration for Import tables.
 - Register the `ImportServiceProvider`.
 - Publish the configuration file.
 
@@ -106,6 +106,14 @@ class UsersImporter implements Importable
                 'required' => false,
                 'exist' => 'roles.slug'
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.unique' => 'This email is already registered in our system.',
+            'role.exist' => 'The selected role does not exist.',
         ];
     }
 
@@ -216,6 +224,7 @@ Importing large files? Listen for progress events to update your UI.
 
 ```php
 use Import\Events\RowProcessed;
+use Helpers\Log;
 
 // In your EventServiceProvider
 public function handleRow(RowProcessed $event)

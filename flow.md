@@ -1,6 +1,6 @@
 # Flow
 
-**Flow** provides a robust, highly customizable Project Management engine for the Anchor Framework. It allows you to build Kanban boards, list-based workflows, and complex task hierarchies with ease.
+**Flow** provides a highly customizable Project Management engine for the Anchor Framework. It allows you to build Kanban boards, list-based workflows, and complex task hierarchies with ease.
 
 ## Features
 
@@ -24,7 +24,7 @@ php dock package:install Flow --packages
 This will automatically:
 
 - Publish the configuration.
-- Create the `flow_*` tables via migrations.
+- Run the migration for Flow tables.
 - Register the `FlowServiceProvider`.
 
 ### Configuration
@@ -417,6 +417,32 @@ $health = Flow::reports()->for($campaign)->completionRate();
 | `make()`              | Returns a `ReminderBuilder` instance.  |
 | `create(array $data)` | Creates a reminder directly from data. |
 | `processReminders()`  | Processes and sends all due reminders. |
+ 
+## Automation
+ 
+Flow uses automated scheduling to process task recurrence and dispatch reminders. These tasks are automatically registered in the central scheduler:
+ 
+```php
+// packages/Flow/Schedules/FlowSchedule.php
+namespace Flow\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class FlowSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('flow:recur')
+            ->hourly();
+ 
+        $schedule->task()
+            ->signature('flow:reminders')
+            ->everyMinute();
+    }
+}
+```
 
 ## Best Practices
 

@@ -1,4 +1,4 @@
-# Bridge Authentication
+# Bridge
 
 Bridge provides a simple and robust way to issue API tokens for Single Page Applications (SPAs), mobile applications, and general third-party API clients.
 
@@ -33,7 +33,7 @@ php dock package:install bridge --packages
 This command will automatically:
 
 - Publish the `bridge.php` global configuration.
-- Publish and run migrations for `personal_access_token` and `api_key`.
+- Run the migration for Bridge tables.
 - Register the `BridgeServiceProvider` and the global `BridgeAuthMiddleware`.
 
 ## Personal Access Tokens
@@ -42,16 +42,16 @@ This is the most common use case, where users generate tokens for their own acco
 
 ### Setup the Model
 
-Add the `HasApiTokens` trait and implement `TokenableInterface` in your `User` model:
+Add the `HasApiTokens` trait and implement `Tokenable` in your `User` model:
 
 ```php
 namespace App\Models;
 
 use Bridge\Traits\HasApiTokens;
-use Bridge\Contracts\TokenableInterface;
+use Security\Auth\Contracts\Tokenable;
 use Database\BaseModel;
 
-class User extends BaseModel implements TokenableInterface
+class User extends BaseModel implements Tokenable
 {
     use HasApiTokens;
 }

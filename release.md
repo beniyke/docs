@@ -1,6 +1,6 @@
 # Release
 
-**Release** provides an automated, secure, and robust way to manage application updates. It simplifies version checking, downloading, verifying, and applying updates, ensuring your application stays up-to-date with minimal downtime.
+**Release** provides an automated, secure, way to manage application updates. It simplifies version checking, downloading, verifying, and applying updates, ensuring your application stays up-to-date with minimal downtime.
 
 ## Features
 

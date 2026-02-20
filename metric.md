@@ -25,7 +25,7 @@ php dock package:install Metric --packages
 This command will:
 
 - Publish the `metric.php` configuration file.
-- Create necessary database tables (`metric_*`).
+- Run the migration for Metric tables.
 - Register the `MetricServiceProvider`.
 
 ## Facade API
@@ -53,6 +53,9 @@ Metric::updateKeyResult($keyResult, 95.0);
 // Define and record a KPI
 $kpi = Metric::kpi()->name('Sales Volume')->unit('USD')->create();
 Metric::recordKpi($kpi, 15000.00, $salesRep);
+ 
+// Add a competency definition
+Metric::addCompetency('Problem Solving', 'Ability to analyze and resolve complex issues.', 'Technical');
 ```
 
 ### Feedback & Recognition
@@ -63,6 +66,13 @@ Metric::recognize($sender, $receiver, 'excellence', 'Fantastic job on the Q1 rel
 
 // Submit feedback
 Metric::giveFeedback($manager, $employee, 'Consistently exceeds expectations in code quality.');
+ 
+// Schedule a 1-on-1
+$meeting = Metric::scheduleOneOnOne($employee, $manager, $dateTime, 'Project Sync');
+ 
+// Complete a 1-on-1
+use Metric\Enums\OneOnOneStatus;
+Metric::completeOneOnOne($meeting, 'Meeting went well. Employee is on track.', OneOnOneStatus::COMPLETED);
 ```
 
 ### Analytics
@@ -79,7 +89,7 @@ $topPerformers = Metric::analytics()->topPerformers(10);
 
 - **Onboard**: Initialize default performance goals for new hires.
 - **Flow**: (Planned) Link specific project tasks to performance objectives.
-- **Slot**: Book 1-on-1 meetings using the central scheduling system.
+- **Slot**: Book 1-on-1 meetings using the central scheduling system. When `Slot` is installed, `Metric::scheduleOneOnOne()` automatically attempts to create a confirmed booking if the manager has an active availability schedule for the chosen time.
 - **Hub**: Create announcement threads for team recognitions.
 - **Audit**: Immutable history of performance appraisals and goal adjustments.
 - **Workflow**: Orchestrate review cycle transitions (Draft -> Active -> Finalized).

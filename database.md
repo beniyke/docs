@@ -134,12 +134,12 @@ try {
 ```php
 DB::afterCommit(function() {
     // Runs after successful commit
-    logger('database.log')->info('Transaction committed');
+    Log::channel('database')->info('Transaction committed');
 });
 
 DB::afterRollback(function() {
     // Runs after rollback
-    logger('database.log')->error('Transaction rolled back');
+    Log::channel('database')->error('Transaction rolled back');
 });
 ```
 
@@ -218,17 +218,28 @@ if (DB::connection()->columnExists('users', 'email')) {
 
 ### Query Logging
 
+Query logging is disabled by default for performance and memory safety. It is automatically enabled when the application is in `debug` mode.
+
+To manually control logging:
+
 ```php
 use Database\Connection;
 
-// Enable implicit logging by calling:
+// Enable logging
+Connection::enableLogging();
+
+// Get the log
 $log = Connection::getQueryLog();
 
 foreach ($log as $query) {
     // Process log
 }
 
+// Clear the log manually
 Connection::clearQueryLog();
+
+// Disable logging (also clears the log)
+Connection::disableLogging();
 ```
 
 ### Slow Query Detection
@@ -237,7 +248,7 @@ Monitor slow queries globally:
 
 ```php
 DB::whenQueryingForLongerThan(0.5, function($query) {
-    logger('database.log')->warning('Slow query detected', [
+    Log::channel('database')->warning('Slow query detected', [
         'sql' => $query['sql'],
         'time_ms' => $query['time_ms']
     ]);

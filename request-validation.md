@@ -2,9 +2,30 @@
 
 Anchor provides a robust, class-based approach to request validation for both web forms and API requests. By creating dedicated validation classes that extend `App\Core\BaseRequestValidation`, you can encapsulate validation logic, keep controllers clean, and easily reuse validation rules across different request types.
 
-## Creating a Validation Class
+### Via CLI (Recommended)
 
-To create a validation class, extend the `App\Core\BaseRequestValidation` abstract class. You are required to implement the `expected()` method, and optionally override `rules()` and `parameters()` methods.
+The fastest way to create a validation class is using the `dock` CLI. **By default, this will also create the associated Request DTO.**
+
+```bash
+php dock validation:create {Name} {Module} --type={form|api} [--no-dto]
+```
+
+**Examples:**
+
+```bash
+# Atomic: Creates LoginFormRequestValidation AND LoginRequest DTO
+php dock validation:create Login Auth --type=form
+
+# Only creates the validator
+php dock validation:create User --type=api --no-dto
+```
+
+**Cleanup:**
+When deleting a validator via `php dock validation:delete`, the CLI will automatically offer to clean up the associated Request DTO to keep your codebase clean. You can also use the `--with-dto` flag to automate this.
+
+### Manual Creation
+
+To create a validation class manually, extend the `App\Core\BaseRequestValidation` abstract class. You are required to implement the `expected()` method, and optionally override `rules()` and `parameters()` methods.
 
 ```php
 namespace App\Auth\Validations\Form;
@@ -165,40 +186,223 @@ public function rules(): array
 
 ## Controller Integration
 
-Validation classes are automatically resolved by the IoC container and injected into your controller methods.
+Anchor promotes a **Zero Boilerplate** approach. When using Smart Validation, there is no need to manually instantiate or call the validator within your controller. The middleware handles execution and populates the request with the validated Data Transfer Object (DTO).
+
+### Zero Boilerplate Pattern (Recommended)
 
 ```php
 namespace App\Auth\Controllers;
 
-use App\Auth\Validations\Form\LoginFormRequestValidation;
 use App\Core\BaseController;
 use Helpers\Http\Response;
 
 class LoginController extends BaseController
 {
-    public function attempt(LoginFormRequestValidation $validator): Response
+    public function attempt(): Response
     {
-        // 1. Run validation against POST data
-        $validator->validate($this->request->post());
+        // 1. Smart Validation has already run before this method.
+        // 2. Retrieve the validated DTO directly from the request.
+        $dto = $this->request->validated();
 
-        // 2. Check for errors
-        if ($validator->has_error()) {
-            // Flash errors to session and redirect back
-            $this->flash->error($validator->errors());
+        // 3. Proceed with business logic
+        if (! $this->auth->login($dto)) {
             return $this->response->redirect($this->request->fullRoute());
         }
 
-        // 3. Retrieve validated data (returns a Data helper object)
-        $data = $validator->validated();
-
-        // ... proceed with login logic
+        return $this->handleLoginRedirect();
     }
+}
+```
+
+### Manual Injection (Legacy/Explicit)
+
+If you prefer explicit types or need to perform manual validation steps, you can still inject the validation class:
+
+```php
+public function attempt(LoginFormRequestValidation $validator): Response
+{
+    // Run validation manually against specific data
+    $validator->validate($this->request->post());
+
+    if ($validator->has_error()) {
+         return $this->handleFailure($validator->errors());
+    }
+
+    $dto = $validator->getRequest(); // Get the DTO from the validator
+}
+```
+
+### Smart Validation
+
+Anchor provides **Smart Validation**, a zero-config automation feature that uses [Route Context](route-context.md) to automatically resolve, execute, and handle validation results before your controller action even begins.
+
+#### How it Works
+
+The internal `Core\Middleware\SmartValidationMiddleware` automatically hooks into every request and:
+
+- **Extracts Context**: Identifies the `domain`, `entity`, and `action` from the route.
+- **Resolves Validation Class**: Searches for a matching validation class in `App\{Domain}\Validations\{Form|Api}` (or uses an explicit override).
+- **Executes Validation**: Instantiates the class and runs `validate($request->all())`.
+
+- **Handles Failure**:
+  - **Web**: Automatically flashes input/errors and redirects back.
+  - **API/AJAX**: Returns a structured `422 Unprocessable Entity` JSON response for consistency.
+
+#### Explicit Validator Overrides
+
+If the automated naming convention doesn't fit your use case, you can explicitly specify a validator class in the [Route Context](route-context.md). This is typically done in a custom middleware to keep your controllers clean:
+
+```php
+$request->setRouteContext('validator', UserFormRequestValidation::class);
+```
+
+When this key is present, the middleware skips automated resolution and uses the provided class.
+
+#### AJAX Support
+
+The middleware is AJAX-aware. If a request is made via `XMLHttpRequest` (or specifies `Accept: application/json`), validation failures will automatically result in a JSON response with a **422** status code, even if not on an API route.
+
+#### Class Naming Convention
+
+To enable Smart Validation, name your validation classes following these patterns:
+
+- `App\Account\Validations\Form\UserFormRequestValidation` (Default)
+- `App\Account\Validations\Api\UserApiRequestValidation` (API specific)
+- `App\Account\Validations\Form\EditUserFormRequestValidation` (Action specific)
+
+#### Benefits
+
+- **Zero Boilerplate**: No need to inject or call validators manually.
+- **Clean Controllers**: Controller methods stay focused on the "happy path" without validation logic.
+- **Consistent Responses**: Standardized error handling for both Web (302 redirects) and API/AJAX (422 JSON).
+- **Type-Safe Data**: Access already-validated DTOs via `$this->request->validated()`.
+
+## Manual Validation
+
+While Smart Validation handles most cases, you may occasionally need to trigger validation manually within a controller while still benefiting from the framework's failure handling logic.
+
+### validateUsing
+
+The `validateUsing()` method allows you to execute a specific validation class and automatically trigger the middleware's failure handler (e.g., redirecting with errors or returning JSON).
+
+```php
+public function store(): Response
+{
+    // Triggers failure logic (redirect/JSON) if validation fails
+    $this->request->validateUsing(CustomValidator::class);
+
+    // If we reach here, validation passed
+    $data = $this->request->validated();
+
+    $redirect_to = $this->request->fullRouteByName('home');
+
+    if (! $this->request->isLoginRoute()) {
+        $redirect_to = $this->request->callback();
+    }
+
+    return $this->response->redirect($redirect_to);
+}
+```
+
+This is particularly useful when you need to perform conditional validation or multi-step logic before a validator is chosen.
+
+## Use Cases
+
+### The Multi-Step Wizard (Manual Trigger)
+
+In a multi-step registration process, you might want to validate different parts of the request data at different stages, but still want the framework to handle the failure logic automatically.
+
+```php
+namespace App\Account\Controllers;
+
+use App\Core\BaseController;
+use Helpers\Http\Request;
+use Helpers\Http\Response;
+use App\Account\Validations\Form\AccountBasicValidation;
+use App\Account\Validations\Form\AccountProfileValidation;
+
+class RegistrationController extends BaseController
+{
+    public function store(): Response
+    {
+        $step = $this->request->get('step', 1);
+
+        if ($step === 1) {
+           // Triggers failure logic (redirect/JSON) if basic info is invalid
+           $this->request->validateUsing(AccountBasicValidation::class);
+        } else {
+           // Triggers failure logic for step 2
+           $this->request->validateUsing(AccountProfileValidation::class);
+        }
+
+        // If we reach here, validation passed
+        $data = $this->request->validated();
+        
+        // Process data...
+        return $this->response->redirect(route('next-step'));
+    }
+}
+```
+
+### Custom Admin Endpoints (Context Override)
+
+Sometimes you have a standard `UserController` for public profile updates, but a separate `AdminUserController` that requires stricter validation (like role assignment) for the same `User` entity. **Instead of overriding the controller constructor**, the idiomatic Anchor pattern is to use a simple middleware to set the context.
+
+```php
+namespace App\Account\Middleware;
+
+use Closure;
+use Helpers\Http\Request;
+use Helpers\Http\Response;
+use App\Account\Validations\Form\AdminUserUpdateValidation;
+
+class UseAdminValidatorMiddleware
+{
+    public function handle(Request $request, Response $response, Closure $next): Response
+    {
+        // Explicitly override the smart validator for this route group or controller
+        $request->setRouteContext('validator', AdminUserUpdateValidation::class);
+        
+        return $next($request, $response);
+    }
+}
+```
+
+By applying this middleware to your admin routes, you bypass the default `UserFormRequestValidation` and use your specialized admin validator instead, without adding any boilerplate to your controller methods.
+
+### SPA Interaction (AJAX Support)
+
+If you are building a SPA (Vue, React, HTMX) and want to use the same controller action for both standard form submissions and AJAX requests, the `SmartValidationMiddleware` handles it automatically.
+
+```php
+// Controller logic stays clean and focused on the happy path
+public function store(UserRequest $dto): Response
+{
+    User::create($dto->all());
+    
+    return $this->response->redirect('/users');
+}
+```
+
+If an HTMX or fetch request fails validation, the middleware detects the `X-Requested-With` header or `Accept: application/json` and returns a **422 JSON** error object instead of a 302 redirect. This allows your frontend to display inline errors without extra backend logic.
+
+## Validation Exceptions
+
+When validation fails manually or via middleware, the framework throws an `Exceptions\ValidationException`. 
+
+```php
+use Exceptions\ValidationException;
+
+try {
+    // ... validation logic
+} catch (ValidationException $e) {
+    $errors = $e->getErrors();
 }
 ```
 
 ## Email Validation
 
-Anchor provides comprehensive, production-ready email validation with **zero external dependencies**. Protect your application from disposable emails, role-based accounts, and enforce domain policies.
+Anchor provides comprehensive email validation with **zero external dependencies**. Protect your application from disposable emails, role-based accounts, and enforce domain policies.
 
 ### Available Email Validation Rules
 
@@ -301,11 +505,11 @@ public function rules(): array
 
 **Validation order:**
 
-1. Email format validation (`type => 'email'`)
-2. Strict checks (disposable, role, mx)
-3. Domain whitelist (`allow_domains`)
-4. Domain blacklist (`block_domains`)
-5. Pattern matching (`email_pattern`)
+- Email format validation (`type => 'email'`)
+- Strict checks (disposable, role, mx)
+- Domain whitelist (`allow_domains`)
+- Domain blacklist (`block_domains`)
+- Pattern matching (`email_pattern`)
 
 ### Custom Error Messages
 
@@ -453,8 +657,6 @@ return [
 - **DNS validation**: Optional, 5-second timeout, use sparingly
 - **Pattern matching**: Optimized regex with ReDoS protection
 - **Caching**: Consider caching validation results for high-traffic applications
-
----
 
 ## Class Reference: BaseRequestValidation
 
@@ -619,6 +821,8 @@ public function upload(UploadFormRequestValidation $validator): Response
     $data = $validator->validated();
 }
 ```
+
+> Use `$request->validateUsing(UploadFormRequestValidation::class)` for even cleaner controller code when manual triggers are required.
 
 **`secure_file` Options:**
 
@@ -828,6 +1032,7 @@ public function rules(): array
 - `email`: Validates standard email format.
 - `phone`: Validates standard phone number format.
 - `password`: Validates password strength. Configurable via `config` rule:
+
   ```php
   'password' => [
       'type' => 'password',
@@ -843,6 +1048,7 @@ public function rules(): array
       ]
   ]
   ```
+  
 - `creditcard`: Validates credit card number (Luhn algorithm).
 - `ipv4` / `ipv6`: Validates IP address formats.
 - `coordinate`: Validates "lat,long" string.

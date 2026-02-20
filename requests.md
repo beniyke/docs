@@ -4,7 +4,7 @@ The `Helpers\Http\Request` class provides a comprehensive interface for working 
 
 ## Accessing Request Data
 
-#### all
+### all
 
 ```php
 all(): array
@@ -14,7 +14,7 @@ Returns all input data (GET, POST, JSON, etc.) as a single associative array.
 
 - **Example**: `$data = $request->all();`.
 
-#### post / get
+### post / get
 
 ```php
 post(?string $key = null, mixed $default = null): mixed
@@ -114,6 +114,24 @@ if ($request->isDelete()) {
 if ($request->isStateChanging()) {
     // POST, PUT, PATCH, or DELETE
 }
+
+// Multi-method checks
+if ($request->isPostOrPut()) {
+    // POST or PUT
+}
+
+if ($request->isPostOrPatch()) {
+    // POST or PATCH
+}
+
+if ($request->isPutOrPatch()) {
+    // PUT or PATCH
+}
+
+// Custom method check
+if ($request->is('POST', 'PATCH')) {
+    // Match against any provided methods
+}
 ```
 
 #### method
@@ -136,7 +154,7 @@ if ($request->isOptions()) {
 
 ## File Uploads
 
-#### hasFile
+### hasFile
 
 ```php
 if ($request->hasFile()) {
@@ -144,7 +162,7 @@ if ($request->hasFile()) {
 }
 ```
 
-#### file
+### file
 
 ```php
 file(?string $key = null): UploadedFile|array|null
@@ -240,6 +258,11 @@ $scheme = $request->scheme(); // 'http' or 'https'
 if ($request->secure()) {
     // Request is over HTTPS
 }
+
+// Check if a URL is internal to the application
+if ($request->isInternalUrl($url)) {
+    // Safe to redirect
+}
 ```
 
 ### User Agent and IP
@@ -288,7 +311,7 @@ if ($this->request->isSecurityValid()) {
 
 ## Authenticated User
 
-If the request has been processed by an authentication layer, you can access the user and their token directly:
+If the request has been processed by an authentication layer (like `WebAuthMiddleware` or `ApiAuthMiddleware`), you can access the user and their token directly:
 
 ```php
 // Get the authenticated user object
@@ -297,6 +320,60 @@ $user = $request->user();
 // Get the raw authentication token
 $token = $request->token();
 ```
+
+> Authentication middleware typically identifies the user and calls `$request->setAuthenticatedUser($user)` to make it available throughout the request lifecycle.
+
+## Validation
+
+The Request object provides integrated support for triggering class-based validation.
+
+### validateUsing
+
+```php
+validateUsing(string $class): self
+```
+
+Initiates validation using the specified validation class. If validation fails, it automatically triggers the framework's failure handling (e.g., flashing errors to the session and redirecting, or returning a JSON response for API/AJAX).
+
+- **Example**: `$request->validateUsing(LoginFormRequestValidation::class);`
+
+### validated
+
+```php
+validated(): ?object
+```
+
+Retrieves the validated Data Transfer Object (DTO) populated by Smart Validation or `validateUsing`.
+
+- **Example**: `$dto = $this->request->validated();`
+
+See [Validation Documentation](validation.md#manual-validation) for more details.
+
+## Route Context
+
+The Request object can carry structured metadata about the current route, such as the resource name, action being performed, and the required permission. This is typically hydrated by `CheckPermissionMiddleware`.
+
+### Accessing Context
+
+```php
+// Get specific context (e.g., 'resource' or 'action')
+$resource = $request->getRouteContext('resource'); // e.g., 'users'
+$action = $request->getRouteContext('action');     // e.g., 'edit'
+
+// Get all context
+$context = $request->allRouteContext();
+```
+
+### Route Permissions
+
+You can retrieve the specific permission string that was determined for the current route.
+
+```php
+// Get the route permission
+$permission = $request->getRoutePermission(); // e.g., 'users.edit'
+```
+
+- **Use Case**: Context-aware logging, sidebar highlighting, or dynamic breadcrumbs.
 
 ## Request Macros
 
@@ -468,7 +545,7 @@ $url = $request->fullRouteByName('users.show');
 $callback = $request->callback();
 ```
 
-## Real-World Examples
+## Use Cases
 
 ### Form Validation
 

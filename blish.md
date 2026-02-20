@@ -10,9 +10,19 @@
 
 ## Installation
 
+Blish is a **package** that requires installation before use.
+
+### Install the Package
+
 ```bash
 php dock package:install Blish --packages
 ```
+
+This command will:
+
+- Publish the `blish.php` configuration file.
+- Run the migration for Blish tables.
+- Register the `BlishServiceProvider`.
 
 ## Basic Usage
 
@@ -36,6 +46,80 @@ $user = Blish::find('user@example.com');
 Blish::unsubscribe('user@example.com');
 ```
 
+### Retrieving Subscribers
+
+You can retrieve subscribers using standard Eloquent methods on the `Subscriber` model.
+
+```php
+use Blish\Models\Subscriber;
+
+// Get all subscribers
+$allSubscribers = Subscriber::all();
+
+// Filter by status (using scope)
+$activeSubscribers = Subscriber::active()->get();
+
+// Search by email/name (using scope)
+$user = Subscriber::search('@company.com')->first();
+```
+
+### Segmentation with Lists and Tags
+
+Blish supports organizing subscribers into lists and tagging them for targeted campaigns.
+
+```php
+// Add subscriber to a list
+$subscriber->lists()->attach($listId);
+
+// Add tags to a subscriber
+$subscriber->tags()->attach($tagId);
+
+// Get subscribers in a specific list (using scope)
+$listSubscribers = Subscriber::inList($listId)->get();
+```
+
+### Managing Lists and Tags
+
+You can manage lists and tags using standard Eloquent models.
+
+```php
+use Blish\Models\BlishList;
+use Blish\Models\Tag;
+
+// Create a new list
+$list = BlishList::create([
+    'name' => 'Weekly Newsletter',
+    'slug' => 'weekly-newsletter',
+    'description' => 'Updates every Monday',
+]);
+
+// Create a new tag
+$tag = Tag::create([
+    'name' => 'VIP',
+    'slug' => 'vip',
+]);
+```
+
+### Using Templates
+
+Templates allow you to reuse email content across campaigns.
+
+```php
+use Blish\Models\Template;
+
+// Create a template
+$template = Template::create([
+    'name' => 'Standard Layout',
+    'content' => '<html>...</html>',
+]);
+
+// Use template in a campaign
+$campaign = Blish::campaign()
+    ->title('Campaign with Template')
+    ->template($template->id)
+    ->create();
+```
+
 ### Advanced Subscriber Builder
 
 For more control, you can use the fluent subscriber builder:
@@ -48,6 +132,7 @@ Blish::subscriber()
     ->name('Jane Doe')
     ->data(['interests' => ['tech', 'news']])
     ->active() // Sets status to 'active'
+    // ->inactive() // Or set status to 'inactive'
     ->save();
 ```
 
@@ -67,15 +152,30 @@ $campaign = Blish::campaign()
     ->schedule(DateTimeHelper::now()->addHour()) // Fluent scheduling
     ->create();
 
-// Alternatively, schedule later:
 // $campaign->update(['status' => 'scheduled', ...]);
+ ```
+ 
+## Automation
+ 
+The Blish package automatically handles campaign processing via the framework's central scheduler. This eliminates the need for manual cron management.
+ 
+```php
+// packages/Blish/Schedules/BlishSchedule.php
+namespace Blish\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class BlishSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('blish:process')
+            ->hourly();
+    }
+}
 ```
-
-> **Note**: For scheduled campaigns to be sent, you must schedule the `blish:process` command to run frequently (e.g., every minute) in your server's crontab or via the framework's scheduler:
->
-> ```bash
-> * * * * * php /path/to/project/dock blish:process
-> ```
 
 ## Analytics
 
@@ -101,10 +201,11 @@ Note that `recordSent` is automatically called by the `CampaignProcessorService`
 
 Access analytics stats via the database models:
 
-````php
+```php
 // Get stats for a campaign
 $stats = $campaign->stats;
 // $stats->opens, $stats->clicks, $stats->sent
+```
 
 ### Trend Analysis
 
@@ -120,7 +221,7 @@ $clickTrends = $campaign->getClickTrend('hour');
 // Returns ['2026-01-01 08:00:00' => 2, '2026-01-01 09:00:00' => 5, ...]
 
 // Supported intervals: 'day', 'hour', 'month'
-````
+```
 
 ## Configuration
 

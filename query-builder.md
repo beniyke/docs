@@ -404,6 +404,24 @@ foreach ($log as $entry) {
 }
 ```
 
+### Smart Cache Clearing
+
+The Query Builder integrates with the **Route Context** system to provide zero-config cache invalidation.
+
+When a state-changing request (`POST`, `PUT`, `DELETE`) is successful, the framework identifies the current `entity` context (e.g., `User`, `Post`) and automatically flushes all cache entries tagged with that entity.
+
+#### How it Works
+
+1.  **Auto-Tagging**: Every query executed via the Query Builder is automatically tagged with the table name (e.g., `users`).
+2.  **Context Detection**: The `ClearResourceCacheListener` retrieves the current `entity` from the Route Context.
+3.  **Automatic Flush**: If the request succeeds, `Cache::flushTags(['users'])` is called automatically.
+
+This ensures that your read-heavy pages (like listings) are always served from cache until a relevant change occurs, at which point the cache is precisely cleared without affecting unrelated data.
+
+For more details on the context system, see [Route Context](route-context.md).
+
+---
+
 ## Soft Deletes & Global Scopes
 
 ### Soft Deletes
@@ -640,8 +658,8 @@ All builder methods throw `RuntimeException` for misuse (e.g., missing table) an
 ```php
 try {
     DB::table('nonexistent')->get();
-} catch (RuntimeException $e) {
-    logger('query.log')->error('Query error: ' . $e->getMessage());
+} catch (Exception $e) {
+    Log::channel('query')->error('Query error: ' . $e->getMessage());
 }
 ```
 

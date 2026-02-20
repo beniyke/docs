@@ -21,8 +21,7 @@ php dock package:install Workflow --packages
 
 This command automatically:
 
-- Publish the `workflow_history` migration.
-- **Automatically runs the migration** to create history tracking tables.
+- Run the migration for Workflow tables.
 - Register the `WorkflowServiceProvider`.
 - Set up core bindings for the Engine and Runner.
 
@@ -210,7 +209,7 @@ $token = yield sideEffect(fn() => bin2hex(random_bytes(16)));
 For trivial tasks, you can yield a closure directly.
 
 ```php
-yield fn() => $this->logger->info("Processing step...");
+yield fn() => Log::info("Processing step...");
 ```
 
 ## Activity Options

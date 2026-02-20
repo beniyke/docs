@@ -23,7 +23,7 @@ php dock package:install Forge --packages
 
 This command will automatically:
 
-- Create necessary database tables `forge_*`.
+- Run the migration for Forge tables.
 - Register the `ForgeServiceProvider`.
 
 ## Architecture & Lifecycle

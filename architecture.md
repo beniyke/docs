@@ -16,7 +16,7 @@ Anchor has a clear separation between the **framework foundation** (`System/`) a
 
 ### System Directory
 
-**Framework Foundation**
+### Framework Foundation
 
 The `System/` directory contains the **core framework code** that powers Anchor. This is the foundation that provides:
 
@@ -35,13 +35,13 @@ The `System/` directory is the framework's foundation and should remain untouche
 
 **If you need to improve or add features to the framework itself:**
 
-- Submit a Pull Request to the [Anchor Framework repository](#)
+- Submit a Pull Request to the Anchor Framework repository
 - Discuss the feature in GitHub Issues
 - Contribute to the framework's evolution
 
 ### App Directory
 
-**Your Application**
+### Your Application
 
 The `App/` directory is **your workspace** where you build your application:
 
@@ -105,7 +105,7 @@ Middleware filter requests (security, auth) and modify responses (headers, loggi
 
 ## Modular Structure
 
-**App/src**
+### App/src structure
 
 Anchor encourages a **Domain-Driven** or **Modular** structure in `App/src`. Instead of grouping by file type (all controllers in one folder), you group by feature:
 
@@ -117,7 +117,7 @@ App/src/
     └── Models/        <-- Data models for Account
 ```
 
-This ensures that as the application grows, features stay encapsulated and maintainable.
+This ensures that as the application grows, features stay encapsulated and maintainable. Package-specific logic for core models is injected at runtime via **Macros** to prevent cross-modular pollution.
 
 ## Database Layer
 

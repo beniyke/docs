@@ -290,6 +290,22 @@ Returns the parent directory of a path.
 Paths::dirname('/var/www/myapp/file.txt'); // /var/www/myapp
 ```
 
+### securePath
+
+```php
+static securePath(string $path, ?string $root = null): string
+```
+
+Resolves a path and verifies it remains within the root directory (defaulting to project root). Throws a `RuntimeException` if a path traversal attempt is detected.
+
+```php
+// Safe
+$path = Paths::securePath('storage/logs/app.log');
+
+// Throws RuntimeException
+$path = Paths::securePath('../../../etc/passwd');
+```
+
 ## Global Helper Functions
 
 | Function              | Equivalent                  |

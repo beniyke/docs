@@ -1,27 +1,42 @@
-# Defer System
+# Defer
 
 The `Defer` system allows you to postpone the execution of heavy tasks until after the response has been sent to the user. This improves perceived performance.
 
 ## Usage
 
-Use the global `defer` helper function:
+You can use the `Defer` facade or the global `defer()` helper function:
 
 ```php
 use App\Notifications\Email\WelcomeEmail;
 use Helpers\Data;
+use System\Defer\Defer;
+use Mail\Mail;
 
-defer(function () {
-    // Heavy task, e.g., sending email
+// Using the Facade
+Defer::push(function () {
     $payload = Data::make(['name' => 'John', 'email' => 'john@example.com']);
-    resolve(Mail\Mailer::class)->send(new WelcomeEmail($payload));
+    Mail::send(new WelcomeEmail($payload));
+});
+
+// Using the helper
+defer(function () {
+    // ...
 });
 ```
 
 ## Named Scopes
 
-You can push tasks to specific named scopes using the `name()` method on the deferrer:
+You can push tasks to specific named scopes to organize your background work:
 
 ```php
+use System\Defer\Defer;
+
+// Using the Facade
+Defer::name('emails')->push(function () {
+    // ...
+});
+
+// Using the helper/service
 deferrer()->name('emails')->push(function () {
     // ...
 });
@@ -29,7 +44,7 @@ deferrer()->name('emails')->push(function () {
 
 ## The Deferrer Service
 
-You can also access the underlying `DeferrerInterface` directly:
+The `Defer` facade is a static interface to the `DeferrerInterface` service. You can also access the service directly:
 
 ```php
 $deferrer = deferrer();
@@ -45,7 +60,7 @@ $deferrer->name('images')->push(function() { ... });
 
 - **Queueing**: The closure is added to a queue in memory.
 - **Response**: The application finishes processing the request and sends the response to the browser.
-- **Execution**: After the response is sent (using `fastcgi_finish_request()` or similar), the deferred callbacks are executed.
+- **Execution**: Deferred callbacks are executed automatically after the response is sent (via `KernelTerminateEvent`) or after a CLI command finishes (via `ConsoleTerminateEvent`). This is handled by the `ProcessDeferredTasksListener`.
 
 ## Requirements
 

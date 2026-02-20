@@ -1,13 +1,12 @@
 # Capsule Helper
 
-The `Helpers\Capsule` class is a fluent, schema-aware data container that supports immutability, type casting, computed properties, and validation.
+The `Helpers\Data\Capsule` class is a fluent, schema-aware data container that supports immutability, type casting, computed properties, and validation.
 
-> [!TIP]
 > Use capsules for DTOs, configuration sets, or any structured data that needs consistency.
 
 ## Creation
 
-#### make / empty / fromJson
+### make / empty / fromJson
 
 ```php
 $capsule = Capsule::make(['id' => 1, 'name' => 'Anchor']);
@@ -33,7 +32,7 @@ $capsule->schema([
 ]);
 ```
 
-#### Supported Casts
+### Supported Casts
 
 - `int`, `float`, `string`, `bool`, `array`, `json`
 - `date` (automatically parses via `DateTimeHelper`)
@@ -63,7 +62,7 @@ echo $capsule->get('full_name');
 
 Capsule provides methods for creating modified clones of sealed or unsealed containers.
 
-#### with / without
+### with / without
 
 ```php
 $new = $capsule->with(['role' => 'editor']);
@@ -73,7 +72,7 @@ $stripped = $capsule->without('password', 'internal_id');
 - Returns a **new instance** with the specified changes.
 - Useful for updating immutable capsules without losing original state.
 
-#### equals
+### equals
 
 ```php
 if ($capsule->equals($otherCapsule)) { ... }
@@ -86,7 +85,7 @@ Inspired by collections, Capsule supports functional-style chaining.
 ```php
 $capsule
     ->when($isAdmin, fn($c) => $c->set('role', 'root'))
-    ->tap(fn($c) => logger($c->toArray()))
+    ->tap(fn($c) => Log::info('Debug collection', $c->toArray()))
     ->fill($newData);
 ```
 
@@ -111,6 +110,6 @@ $capsule
 
 ## Related
 
-- [DTO Helper](dto-helper.md) - For typed data objects
-- [Data Helper](data-helper.md) - Manipulation of complex datasets
-- [Validation Helper](validation-helper.md) - Deep data validation
+- [DTO Helper](dto.md) - For typed data objects
+- [Data Helper](data.md) - Manipulation of complex datasets
+- [Validation Helper](validation.md) - Deep data validation

@@ -1,11 +1,12 @@
 # AI Agent Guide
 
-Welcome, Agent. This document defines the rules, patterns, and best practices for developing within the **Anchor Framework**. Adherence to these guidelines is mandatory to maintain the framework's integrity, testability, and "mutation-resistant" nature.
+Welcome, Agent. This document defines the rules, patterns, and best practices for developing within the **Anchor Framework**. It should be used in conjunction with the [best-practices.md](best-practices.md) guide. Adherence to these guidelines is mandatory to maintain the framework's integrity, testability, and "mutation-resistant" nature.
 
 ## The Anchor Philosophy
 
 - **Stability**: Anchor provides a solid foundation. Don't fight the framework; use its built-in abstractions.
-- **Shipping**: Code is not just deployed; it's **shipped**. It must be production-ready, performant, secure, and "seaworthy."
+- **Plug and Play (PnP)**: Packages should be hot-swappable. The system must remain functional regardless of which non-core packages are installed.
+- **Shipping**: Code is not just deployed; it's **shipped**. It must be reliable, performant, secure, and "seaworthy."
 - **Analytic Robustness**: Every feature should include robust analytics/logging to ensure visibility into production behavior.
 - **Separation of Concerns**:
   - `System/`: Framework core. **DO NOT MODIFY**.
@@ -19,9 +20,21 @@ Welcome, Agent. This document defines the rules, patterns, and best practices fo
 - Organize by **Feature/Domain**, not just file type.
 - Each module/package should be encapsulated with its own Controllers, Services, Models etc.
 - **Package Isolation**: No package in `packages/` may contain test files or a `Tests/` directory. (See [package-management.md](package-management.md) for full package specifications).
-- **Cross-Package Interaction**: Packages must **never** import or manipulate models belonging to other packages. All interactions must pass through **Service Facades** or **Event Hooks**.
-- **Integration Guard**: Before integrating with other packages, always check if they exist/are enabled and provide a graceful fallback.
+- **Cross-Package Interaction**: Packages must **never** import or manipulate models belonging to other packages. All interactions must pass through **Service Facades** (Soft Integration) or **Event Hooks**.
+- **Integration Guard (Graceful Failure)**: Before integrating with other packages, always check if they exist/are enabled and provide a graceful fallback inside a `try-catch` block if the integration is optional.
+- **Modular Model Extension (Macros)**: Strictly prohibit direct modification of core models for package-specific logic. If a package requires a relationship or method on a core model (like `User`), it MUST be implemented using a **Macro** in the package's `ServiceProvider`.
+- **Extensibility (Macroable)**: If you create a new class that should be extensible by others, use the `System\Helpers\Macroable` trait. This allows other packages to "inject" methods into your class at runtime.
 - **Clear SOC**: Maintain a strict Separation of Concerns. Every Command should interact with a Service; logic should not reside in the Command itself.
+
+### Package Anatomy
+
+Packages in `packages/` or `System/` must follow a predictable layout to be "installable" via `php dock package:install`:
+
+- `setup.php`: The manifest defining Service Providers and Middleware.
+- `Config/`: Configuration files that get published to `App/Config/`.
+- `Database/Migrations/`: Migrations that get published and run automatically.
+- `Providers/`: The "entry points" for your package logic.
+- `src/` (Optional): PSR-4 compliant source code.
 
 ### Naming & Directory Conventions
 
@@ -47,7 +60,7 @@ Components must follow strict naming and directory patterns aligned with the fra
 ### Dependency Injection (DI)
 
 - **Constructor Injection**: Mandatory for Services, Packages, and core logic. Improves testability and makes dependencies explicit.
-- **Global Helpers**: `config()`, `session()`, `request()`, etc. are acceptable in **Controllers** and **Views** for better Developer Experience (DX).
+- **Global Helpers**: `config()`, `session()`, `request()`, etc. are acceptable in **Views**. For **Controllers**, dependencies should be injected (concrete classes or abstractions) to maintain a clean and testable architecture.
 - **Golden Rule**: If you need to mock it in a unit test, inject it.
 
 ### Service Container & Providers
@@ -108,9 +121,18 @@ Components must follow strict naming and directory patterns aligned with the fra
 - **Type Safety**: Standardize on `Throwable` for catch blocks unless you are targeting a specific custom exception.
 - **Custom Exceptions**: Create high-level domain exceptions (residing in `Exceptions/`) to represent meaningful business failures that need special handling.
 
+### State & Memory Management
+
+For long-running processes (CLI Workers, Watchers), static state is dangerous:
+
+- **Reset Static Caches**: If your service uses static caches, implement a `reset()` method and call it in `Kernel::terminate()`.
+- **Avoid Boundless Growth**: Never append to static arrays without a cleanup mechanism.
+- **Memory Hygiene**: Use the `php dock inspect` tool to check for memory leaks in persistent components.
+
 ### Database & Migrations
 
 - **Table Naming**: Table names must be in **singular** form (e.g., `user`, `order`).
+- **Defensive Migrations**: Use `createIfNotExists()` in `up()` and `dropIfExists()` in `down()` to ensure migrations are idempotent and "seaworthy" across environments.
 - **One Migration, One Table**: No multi-table migrations. Every table should belong to its own migration file.
 - **Timestamps**: Use `dateTimeStamps()` over standard `timestamps()` for better precision/consistency across drivers.
 - **Reversibility**: Migrations should be reversible (`down()` method implemented) whenever possible.
@@ -121,7 +143,7 @@ Components must follow strict naming and directory patterns aligned with the fra
 Testing is not optional; it's the core of the Anchor Framework. All tests must comply with the standards outlined in [testing.md](testing.md).
 
 - **Testing Framework**: Use **Pest exclusively** for all tests. PHPUnit must not be used.
-- **Centralized Testing**: All tests for packages must reside under the global `tests/` directory, following the structure and conventions defined in [testing.md](testing.md).
+- **Centralized Testing**: All tests for packages must reside under the global `tests/` directory, mirroring the `packages/` or `App/` structure.
 
 ### Unified Directory Mirroring
 
@@ -157,6 +179,16 @@ Use the `dock` CLI for all lifecycle tasks:
 - `php dock inspect`: Run Pint and PHPStan to catch issues.
 - `php dock sail`: **The Ultimate Gatekeeper**. Runs style, static analysis, and tests in parallel. Run this before declaring a task complete.
 - `php dock package:install {Name}`: Use `--system --force` for core framework packages.
+
+## Key References
+
+For deep dives into specific framework components, refer to these guides:
+
+- **Core Engine**: [architecture.md](architecture.md), [lifecycle.md](lifecycle.md), [container.md](container.md)
+- **Data Layer**: [models.md](models.md), [query-builder.md](query-builder.md), [migrations.md](migrations.md)
+- **Logic & Services**: [services.md](services.md), [providers.md](providers.md), [events.md](events.md)
+- **Web & API**: [routing.md](routing.md), [controllers.md](controllers.md), [middleware.md](middleware.md), [request-validation.md](request-validation.md)
+- **Tooling**: [dock-command.md](dock-command.md), [code-quality.md](code-quality.md), [best-practices.md](best-practices.md)
 
 ## Summary for Agents
 

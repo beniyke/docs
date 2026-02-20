@@ -1,361 +1,219 @@
 # Authentication
 
-Anchor provides authentication through the `AuthService` and session management system.
+Anchor provides a multi-driver, enterprise-grade authentication ecosystem. This guide covers how to implement, extend, and understand the technical foundations of the system.
 
-## Configuration
+## Quick Implementation
 
-Authentication settings are defined in:
+### Web Authentication (`WebAuthService`)
 
-- `App/Config/default.php` - Session configuration
-- `App/Config/firewall.php` - Firewall and security settings
-- `App/Config/route.php` - Protected routes
-
-## How Authentication Works
-
-Anchor uses **session token-based authentication**:
-
-- User logs in with credentials
-- `WebAuthService` validates credentials via `UserService`
-- `SessionService` creates a session record in database with unique token
-- Session token is stored in user's session
-- On subsequent requests, token is validated against database
-- Session is refreshed on each valid request
-
-## The AuthService
-
-Controllers access authentication through `$this->auth` (instance of `AuthServiceInterface`).
-
-#### isAuthenticated
+Most web applications use the `WebAuthService` for traditional browser-based flows. It utilizes the `session` guard to track users across requests.
 
 ```php
-isAuthenticated(): bool
-```
-
-Checks if the current user has a valid, active session.
-
-- **Use Case**: Conditionally displaying navigation links like "My Account" vs "Login".
-- **Example**: `if ($this->auth->isAuthenticated()) { ... }`.
-
-#### user
-
-```php
-user(): ?User
-```
-
-Retrieves the currently authenticated `User` model instance. Returns `null` if the user is not logged in.
-
-- **Use Case**: Accessing the logged-in user's profile data or ID for database queries.
-
-#### login
-
-```php
-login(LoginRequest $request): bool
-```
-
-Attempts to authenticate a user using the provided request object. It handles credential verification, session creation, and success/error flash messages.
-
-- **Use Case**: Handling a POST request from the login form.
-
-#### logout
-
-```php
-logout(?string $session_token = null): bool
-```
-
-Terminates the current user's session, destroys the PHP session, and removes the session record from the database.
-
-- **Example**: `return $this->auth->logout() ? redirect('/') : back();`.
-
-#### isAuthorized
-
-```php
-isAuthorized(string $route): bool
-```
-
-Checks if the authenticated user has permission to access the specified logical route.
-
-- **Use Case**: Protecting specific administrative or restricted sub-pages within a module.
-
-## Logging In
-
-The login flow uses `WebAuthService`:
-
-```php
-namespace App\Auth\Controllers;
-
-use App\Auth\Validations\Form\LoginFormRequestValidation;
-use App\Core\BaseController;
-use Helpers\Http\Response;
-
-class LoginController extends BaseController
+public function login(LoginRequest $request): bool 
 {
-    public function attempt(LoginFormRequestValidation $validator): Response
-    {
-        // Validate request
-        $validator->validate($this->request->post());
-
-        if ($validator->has_error()) {
-            $this->flash->error($validator->errors());
-            return $this->response->redirect($this->request->fullRoute());
-        }
-
-        // Attempt login via AuthService
-        if (!$this->auth->login($validator->getRequest())) {
-            // Login failed - flash message already set by service
-            return $this->response->redirect($this->request->fullRoute());
-        }
-
-        // Success - redirect to home
-        return $this->response->redirect($this->request->fullRouteByName('home'));
-    }
-}
-```
-
-### What Happens During Login
-
-The `WebAuthService->login()` method:
-
-- Validates credentials using `UserService->confirmUser()`
-- Verifies password with `SymmetricEncryptor->verifyPassword()`
-- Creates session via `SessionService->createNewSession()`
-- Stores session token in user's session
-- Clears firewall failed attempts
-- Shows success flash message
-- Sends login notification via `LoginInAppNotification`
-
-## Retrieving the Authenticated User
-
-```php
-// In a controller
-$user = $this->auth->user();
-
-if ($user) {
-    echo $user->name;
-    echo $user->email;
-}
-```
-
-The `user()` method:
-
-- Gets session token from session storage
-- Looks up session in database via `SessionService`
-- Validates session is not expired
-- Refreshes session expiry
-- Returns associated `User` model
-
-## Checking Authentication
-
-```php
-// In controller
-if ($this->auth->isAuthenticated()) {
-    // User is logged in
-}
-
-// In middleware
-if (!$this->auth->isAuthenticated()) {
-    return $response->redirect($request->fullRouteByName('login'));
-}
-```
-
-## Checking Authorization
-
-```php
-// Check if user can access a specific route
-if ($this->auth->isAuthorized('account/settings')) {
-    // User has access
-}
-```
-
-Authorization checks:
-
-- User is authenticated
-- User can login (`$user->canLogin()`)
-- Route is in user's accessible routes (via `MenuService`)
-
-## Logging Out
-
-```php
-public function logout(): Response
-{
-    $this->auth->logout();
-    return $this->response->redirect($this->request->fullRouteByName('login'));
-}
-```
-
-The `logout()` method:
-
-- Gets session token from session
-- Deletes session token from session storage
-- Destroys PHP session
-- Terminates database session record
-
-## Password Hashing
-
-Use the `enc()` helper (which uses `SymmetricEncryptor`) for password hashing:
-
-```php
-// Hash a password
-$hashedPassword = enc()->hashPassword('user-password');
-
-// Verify a password
-if (enc()->verifyPassword('user-password', $hashedPassword)) {
-    // Password is correct
-}
-```
-
-Passwords are hashed using **Argon2ID** algorithm.
-
-## Protecting Routes
-
-Configure protected routes in `App/Config/route.php`:
-
-```php
-'auth' => [
-    'web' => ['auth/{*}', 'account/{*}'],
-    'api' => ['api/{*}'],
-],
-```
-
-Routes matching these patterns require authentication.
-
-### Excluding Routes from Authentication
-
-```php
-'auth-exclude' => [
-    'web' => [
-        'auth/{login, recoverpassword, resetpassword, signup, activation}',
-    ],
-    'api' => [],
-],
-```
-
-## Authentication Middleware
-
-The `WebAuthMiddleware` protects routes:
-
-```php
-namespace App\Middleware\Web;
-
-use App\Services\Auth\Interfaces\AuthServiceInterface;
-use Helpers\Http\Request;
-use Helpers\Http\Response;
-
-class WebAuthMiddleware
-{
-    public function __construct(
-        private readonly AuthServiceInterface $auth
-    ) {}
-
-    public function handle(Request $request, Response $response, Closure $next): mixed
-    {
-        // Check if route should bypass auth
-        if ($request->routeShouldBypassAuth()) {
-            return $next($request, $response);
-        }
-
-        // Check authentication and authorization
-        if (!$this->auth->isAuthenticated() || !$this->auth->isAuthorized($request->route())) {
-            $this->auth->logout();
-            return $response->redirect(url('login'));
-        }
-
-        return $next($request, $response);
-    }
-}
-```
-
-## Session Management
-
-Sessions are managed through the `SessionService`:
-
-- Sessions are stored in the database (`session` table)
-- Each session has a unique token
-- Sessions have configurable lifetime
-- "Remember me" extends session lifetime
-- Sessions are automatically refreshed on valid requests
-- Expired sessions are cleaned up
-
-### Session Configuration
-
-In `App/Config/default.php`:
-
-```php
-'timeout' => 3600, // 1 hour
-'cookie' => [
-    'remember_me_lifetime' => 2592000, // 30 days
-],
-```
-
-## Firewall Protection
-
-The Firewall system provides additional security through rate limiting and IP blocking. Failed login attempts are tracked and can temporarily block access.
-
-**Example**
-
-Complete login flow from actual codebase:
-
-```php
-// LoginController.php
-public function attempt(LoginFormRequestValidation $validator): Response
-{
-    $validator->validate($this->request->post());
-
-    if ($validator->has_error()) {
-        $this->flash->error($validator->errors());
-        return $this->response->redirect($this->request->fullRoute());
-    }
-
-    if (!$this->auth->login($validator->getRequest())) {
-        return $this->response->redirect($this->request->fullRoute());
-    }
-
-    return $this->handleLoginRedirect();
-}
-
-// WebAuthService.php
-public function login(LoginRequest $request): bool
-{
-    if (!$request->isValid()) {
-        $this->firewall->fail()->capture();
+    // Use attempt() to verify credentials AND establish a session
+    if (!$this->auth->guard('web')->attempt($request->toArray())) {
+        Event::dispatch(new LoginFailedEvent($request->toArray(), 'web'));
         return false;
     }
 
-    $user = $this->user_service->confirmUser($request->getData());
-
-    if (!$user) {
-        $this->flash->error('Invalid login credentials.');
-        $this->firewall->fail()->capture();
-        return false;
-    }
-
-    $should_remember = $request->hasRememberMe();
-    $db_lifetime = $should_remember
-        ? $this->config->get('session.cookie.remember_me_lifetime', 0)
-        : $this->config->get('session.timeout');
-
-    $session = $this->session_service->createNewSession($user, $db_lifetime);
-
-    if (!$session) {
-        $this->flash->error('Login failed. Please try again.');
-        $this->firewall->fail()->capture();
-        return false;
-    }
-
-    $this->session->regenerateId();
-    $this->session->set($this->config->get('session.name'), $session->token);
-    $this->firewall->clear()->capture();
+    $user = $this->user();
     $this->flash->success('Welcome ' . $user->name);
+    Event::dispatch(new LoginEvent($user, $request->hasRememberMe(), 'web'));
 
     return true;
 }
 ```
 
-## Best Practices
+### API Authentication (`ApiAuthService`)
 
-- **Use AuthService methods**: Don't manually manage sessions
-- **Validate before authenticating**: Always validate input first
-- **Use flash messages**: Provide user feedback
-- **Handle failures gracefully**: Check return values
-- **Leverage firewall**: Let it handle throttling
-- **Use "remember me" carefully**: Understand security implications
-- **Clean up sessions**: Automatically handled by `SessionService` (configurable lottery)
+API flows are typically stateless and rely on tokens. The `ApiAuthService` uses the `token` guard.
+
+```php
+public function login(LoginRequest $request): bool 
+{
+    // Use attempt() to verify credentials and set the user for the request
+    if (!$this->auth->guard('api')->attempt($request->toArray())) {
+        return false;
+    }
+
+    $user = $this->user();
+    $token = $this->token_manager->createToken($user, 'Mobile App');
+    
+    // The token is returned to the client for subsequent requests
+    return true;
+}
+```
+
+### `validate()` vs `attempt()`
+
+Understanding the difference between these two methods is crucial for secure implementation:
+
+- **`attempt(array $credentials)`**: **Stateful.** It verifies the credentials and, if successful, automatically logs the user in (e.g., creates a session or sets the user for the current request).
+- **`validate(array $credentials)`**: **Stateless.** It only checks if the credentials are correct and returns a boolean. It does **not** log the user in. Use this for "Confirm Password" checks before sensitive actions.
+
+## Extending the System
+
+Anchor is designed to be highly extensible. You can swap or add components as your application grows.
+
+### Custom Guards (e.g., JWT)
+
+Implement the `Security\Auth\Interfaces\GuardInterface` and register it in a Service Provider:
+
+```php
+$manager->extend('jwt', function($name, $config) {
+    return new JwtGuard($manager->resolveSource($config['source']));
+});
+```
+
+### Custom Sources (e.g., LDAP)
+
+Implement the `Security\Auth\Interfaces\UserSourceInterface`. Sources are typically resolved via the configuration in `App/Config/auth.php`.
+
+```php
+'sources' => [
+    'ldap' => [
+        'driver' => App\Auth\Sources\LdapSource::class,
+    ],
+],
+```
+
+## Technical Reference
+
+### System Topology
+
+|Component|Responsibility|Relevant Files|
+|:---|:---|:---|
+|**Auth Manager**|Singleton factory that resolves and caches Guards.|`System/Security/Auth/AuthManager.php`|
+|**Guards**|Manage request-level authentication state (Session/Token).|`System/Security/Auth/Guards/`|
+|**User Sources**|Abstract the retrieval of users from storage.|`System/Security/Auth/Sources/`|
+|**Auth Services**|Application-level logic for Web or API flows.|`App/Services/Auth/`|
+
+### Multi-Auth Architecture
+
+In complex applications, you often have distinct user actors with completely different data structures and behaviors. Multi-guard allows you to keep these clean and isolated.
+
+#### Scenario: EdTech Plattform (LMS)
+
+- **admin**: Manages the platform and billing (Table: `admin`)
+- **staff**: Teachers and Instructors (Table: `instructor`)
+- **learner**: Students taking courses (Table: `student`)
+
+```php
+// Route Context configuration
+'path' => 'classroom/{*}',
+'context' => [
+    'guards' => ['staff', 'learner'] // Allows both teachers and students
+]
+```
+
+#### Scenario: Marketplace (E-commerce)
+
+- **customer**: Regular shoppers (Standard `user` table)
+- **vendor**: Sellers managing inventory (Table: `vendor`)
+- **support**: Internal support agents (Table: `support_agent`)
+
+```php
+// In a Controller
+public function dashboard(): Response
+{
+    $guard = $this->request->getRouteContext('auth_guard');
+    
+    return match($guard) {
+        'vendor' => $this->asView('vendor.dashboard'),
+        'customer' => $this->asView('customer.profile'),
+        default => $this->response->redirect(url('login')),
+    };
+}
+```
+
+### Technical Benefits
+
+- **Zero Nulls**: No need for a single "Users" table with 50+ nullable columns.
+- **Security Isolation**: Database-level isolation for sensitive roles (Admins).
+- **Scale**: Add new actor types (e.g. `guest`, `api-client`) without refactoring existing logic.
+
+### Architecture: The Guard/Source Pattern
+
+Anchor decouples **State Management** from **Data Retrieval**:
+
+- **Guard**: Responsible for identifying the user from the incoming request (via session cookie, bearer token, etc.).
+- **UserSource**: Responsible for finding the user in the database and verifying that their password matches.
+
+### Multi-Guard Support
+
+Anchor supports multiple authentication guards within a single application. This is useful for separating `Admin`, `Staff`, and `Learner` logins.
+
+```php
+// Switch guards fluently
+$this->auth->viaGuard('admin')->login($request);
+```
+
+### Advanced Multi-Auth Features
+
+#### Context-Aware `auth()` Helper
+
+The global `auth()` helper is "Smart." It automatically detects the active guard set by the middleware:
+
+```php
+// In a controller protected by 'admin' guard
+$admin = auth()->user(); // Automatically uses 'admin' guard
+```
+
+#### Global Logout
+
+You can log a user out of **all** session-based guards at once:
+
+```php
+auth()->logoutAll();
+// Or via the service
+$this->auth->logoutAll();
+```
+
+#### Guard-Specific Redirects
+
+Customize where users are sent when a guard check fails by using the `login_route` context:
+
+```php
+'auth' => [
+    'admin/*' => [
+        'guards' => ['admin'],
+        'login_route' => 'admin.login' // Redirects to /admin/login instead of /login
+    ]
+]
+```
+
+### Configuration (`App/Config/auth.php`)
+
+```php
+return [
+    'guards' => [
+        'web' => ['driver' => 'session', 'source' => 'user'],
+        'admin' => ['driver' => 'session', 'source' => 'admin'],
+        'learner' => ['driver' => 'session', 'source' => 'learner'],
+        'api' => ['driver' => 'token', 'source' => 'user'],
+    ],
+    'sources' => [
+        'user'    => ['driver' => 'database', 'model' => App\Models\User::class],
+        'admin'   => ['driver' => 'database', 'model' => App\Models\Admin::class],
+        'learner' => ['driver' => 'database', 'model' => App\Models\Learner::class],
+    ],
+];
+```
+
+### Security & Hardening
+
+- **Session Rotation**: The `SessionGuard` automatically regenerates the session ID upon login/logout to prevent fixation attacks.
+- **Timing Attack Resistance**: All password verification uses `password_verify()` for constant-time comparisons.
+- **Argon2ID**: Default hashing is handled via the `enc()` helper using the Argon2ID algorithm.
+- **Event System**: The framework dispatches events (`LoginEvent`, `LogoutEvent`, `LoginFailedEvent`) for all major authentication actions, allowing for easy auditing and automated security responses (like IP banning).
+
+### Operational Best Practices
+
+- **CSRF Protection**: Always use `VerifyCsrfToken` middleware for web routes.
+- **Secure Headers**: Ensure your application serves appropriate security headers.
+- **Hidden Fields**: Use the `$hidden` property in your `BaseModel` to prevent sensitive data like passwords from leaking in JSON responses.
+- **Database-Backed Sessions**: The `SessionGuard` integrates with the `SessionManagerInterface` (implemented by `SessionService`) to store session tokens in the database. This allows for:
+  - **Remote Revocation**: Log out a user from all devices by deleting their database sessions.
+  - **Session Auditing**: Track IP addresses and browser info for active sessions.
+  - **Multi-Device Support**: Manage multiple active sessions per user securely.

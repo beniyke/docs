@@ -1,4 +1,4 @@
-# CSRF Protection
+# CSRF
 
 Cross-Site Request Forgery (CSRF) is a malicious exploit where unauthorized commands are performed on behalf of an authenticated user. Anchor automatically protects your application from CSRF attacks.
 
@@ -118,11 +118,11 @@ fetch("/api/endpoint", {
 
 ## How Validation Works
 
-1. **Token Generation**: Created when session starts, stored in session
-2. **Token Embedding**: Added to forms via `$this->csrf()`
-3. **Token Submission**: Sent with POST/PUT/PATCH/DELETE requests
-4. **Token Validation**: Middleware validates token matches session
-5. **Token Regeneration**: Optionally regenerated after each request (if `persist` is false)
+- **Token Generation**: Created when session starts, stored in session
+- **Token Embedding**: Added to forms via `$this->csrf()`
+- **Token Submission**: Sent with POST/PUT/PATCH/DELETE requests
+- **Token Validation**: Middleware validates token matches session using **constant-time comparisons** (`hash_equals()`) to prevent timing attacks.
+- **Token Regeneration**: Optionally regenerated after each request (if `persist` is false)
 
 ## Token Expiry
 
@@ -139,6 +139,8 @@ When `origin_check` is enabled, the token is bound to:
 
 - User's IP address
 - User's user agent
+
+The origin hash is also verified using **constant-time comparison** for maximum security.
 
 This provides additional security but may cause issues if users switch networks or browsers.
 
@@ -266,13 +268,13 @@ xhr.send(
 
 ## Security Best Practices
 
-1. **Always use CSRF protection**: Don't disable it unless absolutely necessary
-2. **Use HTTPS**: CSRF tokens can be intercepted over HTTP
-3. **Keep tokens secret**: Never expose tokens in URLs or logs
-4. **Regenerate tokens**: Use `persist: false` for maximum security
-5. **Validate on server**: Never rely on client-side validation alone
-6. **Use SameSite cookies**: Configure session cookies with SameSite attribute
-7. **Enable origin checking**: For additional security (if users don't switch networks)
+- **Always use CSRF protection**: Don't disable it unless absolutely necessary
+- **Use HTTPS**: CSRF tokens can be intercepted over HTTP
+- **Keep tokens secret**: Never expose tokens in URLs or logs
+- **Regenerate tokens**: Use `persist: false` for maximum security
+- **Validate on server**: Never rely on client-side validation alone
+- **Use SameSite cookies**: Configure session cookies with SameSite attribute
+- **Enable origin checking**: For additional security (if users don't switch networks)
 
 ## Troubleshooting
 

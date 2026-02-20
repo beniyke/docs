@@ -1,6 +1,6 @@
 # Verify
 
-The Verify package provides production-ready OTP (One-Time Password) verification for implementing 2FA (two-factor authentication) in your application. It supports multiple delivery channels (email, SMS, etc.) with built-in rate limiting, security logging, and comprehensive error handling.
+The Verify package provides a robust OTP (One-Time Password) verification system for implementing two-factor authentication (2FA) within the Anchor Framework. It supports multiple delivery channels with built-in rate limiting, security logging, and comprehensive error handling.
 
 ## Features
 
@@ -31,7 +31,7 @@ php dock package:install Verify --packages
 
 This will automatically:
 
-- Run database migrations (`verify_*` tables)
+- Run the migration for Verify tables.
 - Register the service provider
 - Discover console commands
 
@@ -373,7 +373,8 @@ class CustomAuthService
 {
     public function __construct(
         private readonly VerifyManager $verify
-    ) {}
+    ) {
+    }
 
     public function sendCode(string $identifier, string $channel = 'email'): string
     {
@@ -385,7 +386,7 @@ class CustomAuthService
         try {
             return $this->verify->verify($identifier, $code);
         } catch (\Exception $e) {
-            logger('verify.log')->error('Verification failed', [
+            Log::channel('verify')->error('Verification failed', [
                 'identifier' => $identifier,
                 'error' => $e->getMessage(),
             ]);
@@ -456,9 +457,9 @@ The default channels (`EmailChannel` and `SmsChannel`) use the **Notify** packag
 
 To customize the message content (e.g., change the email subject or SMS body), you should **create a custom channel**.
 
-### Example: Custom Email Channel
+### Custom Email Channel
 
-1. Create a new notification class (optional, or use your own mail logic):
+- Create a new notification class (optional, or use your own mail logic):
 
 ```php
 namespace App\Notifications;
@@ -474,7 +475,7 @@ class CustomOtpEmail extends EmailNotification
 }
 ```
 
-2. Create a custom channel that uses your notification:
+- Create a custom channel that uses your notification:
 
 ```php
 namespace App\Channels;
@@ -498,7 +499,7 @@ class CustomEmailChannel implements ChannelInterface
 }
 ```
 
-3. Register it in `verify.php` config:
+- Register it in `verify.php` config:
 
 ```php
 'channels' => [
@@ -527,13 +528,13 @@ class WhatsAppChannel implements ChannelInterface
         try {
             $client->sendMessage($identifier, $message);
 
-            logger('verify.log')->info('OTP sent via WhatsApp', [
+            Log::channel('verify')->info('OTP sent via WhatsApp', [
                 'to' => $identifier,
             ]);
 
             return true;
         } catch (\Exception $e) {
-            logger('verify.log')->error('WhatsApp send failed', [
+            Log::channel('verify')->error('WhatsApp send failed', [
                 'to' => $identifier,
                 'error' => $e->getMessage(),
             ]);
@@ -681,6 +682,28 @@ config('verify.rate_limit_window_minutes')      // int
 config('verify.max_verification_attempts')      // int
 config('verify.channels')                       // array
 config('verify.default_channel')                // string
+ ```
+ 
+## Automation
+ 
+The Verify package includes an automated cleanup task to purge expired OTP codes from the database. This is handled by the central scheduler:
+ 
+```php
+// packages/Verify/Schedules/VerifyCleanupSchedule.php
+namespace Verify\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class VerifyCleanupSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('verify:cleanup')
+            ->hourly();
+    }
+}
 ```
 
 ## See Also

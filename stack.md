@@ -1,6 +1,6 @@
 # Stack
 
-Stack is a powerful, fluent form builder package for the Anchor Framework. It allows you to define complex forms programmatically, handle submissions with built-in validation, and track performance with robust analytics.
+Stack is a fluent form builder package for the Anchor Framework. It allows you to define complex forms programmatically, handle submissions with built-in validation, and track performance with robust analytics.
 
 ## Features
 
@@ -23,7 +23,7 @@ php dock package:install Stack --packages
 This command will:
 
 - Publish the `stack.php` configuration file.
-- Create necessary database (`stack_*`).
+- Run the migration for Stack tables.
 - Register the `StackServiceProvider`.
 
 ## Basic Usage
@@ -62,7 +62,7 @@ To submit data to a form, use the `submit` method. It returns a `Submission` mod
 
 ```php
 use Stack\Stack;
-use Database\Exceptions\ValidationException;
+use Exceptions\ValidationException;
 
 try {
     $submission = Stack::submit($form, [

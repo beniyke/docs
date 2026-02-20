@@ -34,16 +34,16 @@ Sets a 201 Created status. If a `$location` is provided, it automatically sets t
 
 - **Example**: `return $this->response->created('/api/users/1');`.
 
-#### redirect / back
-
-```php
-redirect(string $url, int $status = 302): self
-back(int $status = 302): self
+```
+redirect(string $url, int $status = 302, bool $allowExternal = false): self
+back(): self
 ```
 
 Redirects the user to a new URL or back to the previous page.
 
+- **Note**: By default, `redirect()` prevents [Open Redirect](security.md#open-redirect-protection) vulnerabilities by only allowing internal URLs. Set `$allowExternal` to `true` to redirect to external domains.
 - **Example**: `return $this->response->redirect(url('login'));`.
+- **Example (External)**: `return $this->response->redirect('https://google.com', 302, true);`.
 
 ## Custom Responses
 

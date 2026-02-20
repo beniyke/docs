@@ -19,7 +19,7 @@ Models reside in `App/src/{Module}/Models/` and extend `Database\BaseModel`.
 
 ## Retrieving Models
 
-#### all
+### all
 
 ```php
 static all(array $columns = ['*']): ModelCollection
@@ -29,7 +29,7 @@ Retrieves all records from the database table.
 
 - **Use Case**: Listing all active categories for a navigation menu.
 
-#### find
+### find
 
 ```php
 static find(int|string $id): ?static
@@ -39,7 +39,7 @@ Retrieves a single record by its primary key.
 
 - **Example**: `$user = User::find(1);`.
 
-#### findMany
+### findMany
 
 ```php
 static findMany(array $ids, array $columns = ['*']): ModelCollection
@@ -47,7 +47,7 @@ static findMany(array $ids, array $columns = ['*']): ModelCollection
 
 Retrieves multiple records by their primary keys.
 
-#### query
+### query
 
 ```php
 static query(): Builder
@@ -57,7 +57,7 @@ Initiates a fluent query builder instance for complex filtering.
 
 - **Example**: `User::query()->where('active', 1)->orderBy('name')->get();`.
 
-#### firstOrCreate / updateOrCreate
+### firstOrCreate / updateOrCreate
 
 ```php
 static firstOrCreate(array $attributes, array $values = []): static
@@ -68,7 +68,7 @@ Find or create a model based on matched attributes.
 
 ## Creating & Saving
 
-#### save
+### save
 
 ```php
 save(): bool
@@ -78,7 +78,7 @@ Persists the model instance to the database (performs an `INSERT` if new, or `UP
 
 - **Use Case**: Manually building a model instance before saving.
 
-#### create
+### create
 
 ```php
 static create(array $attributes): static
@@ -89,7 +89,7 @@ Mass-assigns and saves a new model in a single step.
 - **Note**: Attributes must be listed in the `$fillable` array.
 - **Example**: `User::create(['name' => 'Ben', 'email' => '...'])`.
 
-#### increment / decrement
+### increment / decrement
 
 ```php
 increment(string $column, float|int $amount = 1, array $extra = []): int
@@ -219,9 +219,85 @@ class User extends BaseModel
 User::withoutGlobalScope('active')->get();
 ```
 
-## Model Events
+## Model Lifecycle
 
-Models fire several events throughout their lifecycle: `retrieved`, `creating`, `created`, `updating`, `updated`, `saving`, `saved`, `deleting`, and `deleted`.
+Models fire several events throughout their lifecycle that you can hook into using either **Method Callbacks** (preferred for model-specific logic) or **Static Event Listeners** (preferred for Traits and global logic).
+
+### Method Hooks (Callbacks)
+
+Similar to Ruby on Rails, you can simply define a method on your model to react to a lifecycle stage. These methods are automatically discovered by the framework.
+
+| Hook | When it fires | Purpose |
+| :--- | :--- | :--- |
+| `onRetrieved` | After record is loaded | Decryption, formatting data. |
+| `onSaving` | Before Insert OR Update | Validation, normalization, setting defaults. |
+| `onSaved` | After Insert OR Update | External API sync, logging. |
+| `onCreating` | Before new record insert | Generating RefIDs, complex defaults. |
+| `onCreated` | After new record insert | Sending welcome emails, initial setup. |
+| `onUpdating` | Before existing record update | Change detection. |
+| `onUpdated` | After existing record update | Auditing, cache clearing. |
+| `onDeleting` | Before record is removed | Asset cleanup, relationship checks. |
+| `onDeleted` | After record is removed | Post-deletion cleanup. |
+
+#### Example: Normalization & Halting
+
+If a hook returns `false`, the operation (save/delete) will be halted.
+
+```php
+class User extends BaseModel
+{
+    /**
+     * Halts the save process if the user is too young.
+     */
+    protected function onSaving(): ?bool
+    {
+        $this->name = trim($this->name);
+        
+        if ($this->age < 18) {
+            return false; // Prevents the save()
+        }
+        
+        return true;
+    }
+}
+```
+
+#### Example: Post-Creation Logic
+
+Useful for actions that require the model to have an `id` (primary key) assigned first.
+
+```php
+class Order extends BaseModel
+{
+    protected function onCreated(): void
+    {
+        // Now that order is saved and has an ID...
+        notify('orders')->send(new NewOrderNotification($this));
+        
+        // Push a job to handle heavy processing
+        queue(ProcessOrderJob::class, ['order_id' => $this->id]);
+    }
+}
+```
+
+#### Example: Resource Cleanup
+
+Use `onDeleting` to clean up physical files or related resources before the database record disappears.
+
+```php
+class Media extends BaseModel
+{
+    protected function onDeleting(): void
+    {
+        // Delete the actual file from disk before removing the DB record
+        FileSystem::delete($this->path);
+    }
+}
+```
+
+### Static Event Listeners
+
+Static listeners are useful when you want to define behavior in a **Trait** or from an external Service Provider.
 
 ```php
 class User extends BaseModel
@@ -236,6 +312,13 @@ class User extends BaseModel
     }
 }
 ```
+
+### Best Practices for Lifecycle Hooks
+
+- **Use Method Hooks for Internal Logic**: If the logic belongs strictly inside that model (e.g., calculating a total, trimming names), use `onSaving()`. It is faster to find and read.
+- **Use Static Listeners for Traits**: If you are writing a reusable Trait (like `HasRefId`), use the `bootTraitName` approach with `static::creating`. This prevents method name collisions.
+- **Avoid Heavy Logic**: Don't perform long-running tasks (like resizing images) directly in these hooks. Instead, use the `onCreated` hook to dispatch a **Queue Job**.
+- **Return Types**: Always include the `?bool` return type for hooks that can halt execution (`onSaving`, `onCreating`, `onUpdating`, `onDeleting`).
 
 ## Attribute Casting
 

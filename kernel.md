@@ -29,6 +29,7 @@ $kernel->boot();
 - **Boot**:
   - Runs `Bootstrapper::run()`
   - Registers `ErrorHandler`
-  - Registers Service Providers (from `App/Config/providers.php`)
-  - Boots Service Providers
+  - **Internal Provider Registration**: Registers core system providers (e.g., `EventServiceProvider`, `DatabaseServiceProvider`).
+  - **App Provider Registration**: Registers providers from `App/Config/providers.php`.
+  - Boots all registered providers.
   - Sets Timezone

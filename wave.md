@@ -11,8 +11,6 @@
 - **Advanced Lifecycle Handling**: Built-in support for grace periods, subscription swaps, cancellations, and renewals.
 - **Global Tax Support**: Automated tax logic based on user location or global configuration.
 
----
-
 ## Installation
 
 Wave is a **package** that requires installation before use.
@@ -26,8 +24,9 @@ php dock package:install Wave --packages
 This command will:
 
 - Publish the `wave.php` configuration file.
-- Create necessary database tables (`wave_plans`, `wave_subscriptions`, `wave_invoices`, etc.).
+- Run the migration for Wave tables.
 - Register the `WaveServiceProvider`.
+- Enable global helper function (`wave()`)
 
 ### Configure Settings
 
@@ -144,6 +143,19 @@ $plan = Wave::plan()->make()
     ->save();
 ```
 
+### Global Helper
+
+The Wave package provides a convenient global helper for accessing the manager service.
+
+```php
+// Get WaveManagerService instance
+$wave = wave();
+
+// Alias for accessing sub-services
+$plans = wave()->plan();
+$subscriptions = wave()->subscriptions();
+```
+
 ### Subscribing a User
 
 To subscribe a user (or any model) to a plan:
@@ -227,7 +239,7 @@ $invoice = Wave::invoices()->find('INV-2024-0042');
 Wave::invoices()->markAsPaid($invoice, driver: 'manual_wire', transactionId: 'TXN_998877');
 ```
 
-## Automation & CLI
+## Automation& CLI
 
 Wave includes built-in commands for the **Dock** CLI to handle recurring tasks like renewal reminders and processing overdue payments.
 
@@ -895,6 +907,32 @@ $partnerStats = Wave::analytics()->affiliateStats('PARTNER2024');
     'total_commission' => Money object
 ]
 */
+```
+
+## Automation
+
+The Wave package uses automated scheduling to handle subscription renewals and send reminders. These tasks are automatically registered in the framework scheduler:
+
+```php
+// packages/Wave/Schedules/SubscriptionRenewalSchedule.php
+namespace Wave\Schedules;
+ 
+use Cron\Interfaces\Schedulable;
+use Cron\Schedule;
+ 
+class SubscriptionRenewalSchedule implements Schedulable
+{
+    public function schedule(Schedule $schedule): void
+    {
+        $schedule->task()
+            ->signature('wave:renew')
+            ->hourly();
+ 
+        $schedule->task()
+            ->signature('wave:renewal-reminders')
+            ->daily();
+    }
+}
 ```
 
 ## Security & Best Practices

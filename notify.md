@@ -1,4 +1,4 @@
-# Notifications
+# Notify
 
 Anchor provides a robust notification system built on a modular **Channel-Adapter** architecture, allowing you to send notifications via Email, In-App, SMS, WhatsApp, and any custom channel you define.
 
@@ -88,7 +88,7 @@ interface SlackAdapterInterface extends MessageAdapterInterface
 **Implementation:** `App/Channels/Adapters/SlackAdapter.php`
 
 ```php
-namespace App\Channels\Adapters;
+namespace App\Channels;
 
 use App\Channels\Adapters\Interfaces\SlackAdapterInterface;
 use Notify\Contracts\MessageNotifiable;
@@ -270,7 +270,7 @@ class WelcomeEmail extends BaseEmailNotification
 
 ### Non-email Notifications
 
-For non-email channels (Sms, WhatsApp, In App etc), you typically implement a simple method to return the payload.
+For non-email channels (Sms, WhatsApp etc), you typically implement a simple method to return the payload.
 
 ```php
 namespace App\Notifications;
@@ -281,59 +281,4 @@ class NewLoginAlert extends BaseMessageNotification
 {
     // ... define toMessage method ...
 }
-```
-
-## In-App Notification Management
-
-While other channels (Email, SMS) are "fire and forget" transports, In-App notifications are typically stored in the database and managed within your application UI.
-
-The system provides the `App\Models\Notification` model with several helper methods to simplify this.
-
-### Retrieving Unread Notifications
-
-You can retrieve unread notifications for a specific user, ordered by the latest first.
-
-```php
-use App\Models\Notification;
-
-// Get latest 20 unread notifications
-$notifications = Notification::unreadForUser($userId);
-
-// Get a specific count
-$count = Notification::unreadCountForUser($userId);
-```
-
-### Marking as Read
-
-Notifications can be marked as read individually or in bulk.
-
-```php
-// Individual
-$notification = Notification::find($id);
-$notification->markAsRead();
-
-// Bulk for User
-Notification::markAllAsRead($userId);
-```
-
-### Deleting Notifications
-
-```php
-// Clear all notifications for a user (Inbox Zero)
-Notification::deleteAll($userId);
-```
-
-### Automatic Cache Management
-
-The `Notification` model is integrated with the framework's **Cache Tagging** system. Every time an in-app notification is created, read, or deleted, the system automatically flushes the specific cache tags for that user:
-
-- `notifications` (Global tag)
-- `user:{userId}` (User-specific tag)
-
-This ensures that your notification counts and lists are always fresh, even when using high-performance query caching.
-
-```php
-// This query is cached for 1 minute, but will be invalidated
-// instantly if a new notification arrives or is read.
-$count = Notification::unreadCountForUser($userId);
 ```

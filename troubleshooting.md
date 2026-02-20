@@ -167,9 +167,9 @@ tail -f error.log
 
 # 3. Add logging to job
 public function handle() {
-    logger('queue.log')->info('Job started');
+    Log::channel('queue')->info('Job started');
     // ... job logic
-    logger('queue.log')->info('Job completed');
+    Log::channel('queue')->info('Job completed');
 }
 ```
 
@@ -512,8 +512,8 @@ dd($variable);
 // Dump without dying
 dump($variable);
 
-// Log to file (requires filename parameter)
-logger('debug.log')->info('Debug message', ['data' => $data]);
+// Log to file (requires channel parameter)
+Log::channel('debug')->info('Debug message', ['data' => $data]);
 
 // Query logging (automatic)
 use Database\Connection;

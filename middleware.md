@@ -60,7 +60,7 @@ Middleware is configured in `App/Config/middleware.php`:
 ```php
 return [
     'web' => [
-        App\Middleware\Web\SessionMiddleware::class,
+        Core\Middleware\SessionMiddleware::class,
         Security\Firewall\Middleware\FirewallMiddleware::class,
         App\Middleware\Web\RedirectIfAuthenticatedMiddleware::class,
         App\Middleware\Web\WebAuthMiddleware::class,
@@ -106,11 +106,23 @@ Handles authentication and authorization for web-based routes.
 // Check authentication and authorization
 if (!$this->auth->isAuthenticated() || !$this->auth->isAuthorized($request->route())) {
     $this->auth->logout();
-    return $response->redirect($request->fullRouteByName('login'));
+    $loginRoute = $request->getRouteContext('login_route') ?? 'login';
+    return $response->redirect($request->fullRouteByName($loginRoute));
+}
+
+// Multi-Guard Support
+// You can define multiple guards for a route to support different user types
+$guards = $request->getRouteContext('guards') ?? ['web'];
+foreach ($guards as $guard) {
+    if ($this->auth->viaGuard($guard)->isAuthenticated()) {
+        // Find and set the user for the request
+        $request->setAuthenticatedUser($this->auth->user());
+        $request->setRouteContext('auth_guard', $guard);
+        break;
+    }
 }
 
 return $next($request, $response);
-
 ```
 
 ### RedirectIfAuthenticatedMiddleware
@@ -203,7 +215,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 // Add to middleware stack
 'middlewares' => [
     'web' => [
-        \App\Middleware\Web\SecurityHeadersMiddleware::class,
+        App\Middleware\Web\SecurityHeadersMiddleware::class,
         // ... other middleware
     ],
 ],
@@ -251,7 +263,7 @@ class CorsMiddleware implements MiddlewareInterface
 ```php
 return [
     'api' => [
-        \App\Middleware\Api\CorsMiddleware::class,
+        App\Middleware\Api\CorsMiddleware::class,
         // ... other middleware
     ],
 ];
@@ -264,7 +276,7 @@ Middleware executes in the order defined in the configuration:
 ```php
 return [
     'web' => [
-        SessionMiddleware::class,           // 1. Start session
+        Core\Middleware\SessionMiddleware::class,           // 1. Start session
         FirewallMiddleware::class,          // 2. Check firewall rules
         RedirectIfAuthenticatedMiddleware::class, // 3. Redirect if logged in
         WebAuthMiddleware::class,           // 4. Check authentication
@@ -292,19 +304,20 @@ use Core\Middleware\MiddlewareInterface;
 use Closure;
 use Helpers\Http\Request;
 use Helpers\Http\Response;
+use Helpers\Log;
 
 class LoggingMiddleware implements MiddlewareInterface
 {
     public function handle(Request $request, Response $response, Closure $next): mixed
     {
         // Log request
-        logger('requests.log')->info('Request: ' . $request->method() . ' ' . $request->uri());
+        Log::channel('requests')->info('Request: ' . $request->method() . ' ' . $request->uri());
 
         // Pass to next middleware
         $result = $next($request, $response);
 
         // Log response
-        logger('requests.log')->info('Response: ' . $response->getStatusCode());
+        Log::channel('requests')->info('Response: ' . $response->getStatusCode());
 
         return $result;
     }
@@ -452,13 +465,13 @@ public function handle(Request $request, Response $response, Closure $next): mix
 
 ## Best Practices
 
-1. **Keep middleware focused**: Each middleware should do one thing
-2. **Order matters**: Place authentication before authorization
-3. **Use dependency injection**: Don't create dependencies manually
-4. **Handle errors gracefully**: Return appropriate responses
-5. **Consider performance**: Middleware runs on every request
-6. **Document behavior**: Explain what your middleware does
-7. **Test thoroughly**: Middleware affects all routes
+- **Keep middleware focused**: Each middleware should do one thing
+- **Order matters**: Place authentication before authorization
+- **Use dependency injection**: Don't create dependencies manually
+- **Handle errors gracefully**: Return appropriate responses
+- **Consider performance**: Middleware runs on every request
+- **Document behavior**: Explain what your middleware does
+- **Test thoroughly**: Middleware affects all routes
 
 ## Common Use Cases
 

@@ -13,7 +13,7 @@ php dock package:install queue --system
 This command will:
 
 - Publish the `queue.php` configuration file.
-- Publish and run the database migrations for the `queued_job` table.
+- Run the migration for Queue tables.
 - Register the `QueueServiceProvider` in your application.
 
 ## Core Concepts
@@ -64,7 +64,7 @@ php dock task:delete SendWelcomeEmail Auth
 php dock task:delete DailyBackup
 ```
 
-**Example Task Class**
+### Example Task Class
 
 ```php
 namespace App\Auth\Tasks;
@@ -87,7 +87,7 @@ class SendWelcomeEmailTask extends BaseTask
 
     protected function execute(): bool
     {
-        $userId = $this->payload['user_id'];
+        $userId = $this->payload->get('user_id');
         // Logic to send email...
 
         return true; // Return true on success
@@ -107,7 +107,7 @@ class SendWelcomeEmailTask extends BaseTask
 
 ## Dispatching Jobs
 
-You can dispatch jobs using the global `queue()` helper or the `QueueManager` directly.
+The `Queue` facade provides a clean, static interface for dispatching jobs and is the recommended way to interact with the queue system.
 
 ### Immediate Execution (Async)
 
@@ -115,16 +115,31 @@ To queue a job to run as soon as a worker picks it up:
 
 ```php
 use App\Auth\Tasks\SendWelcomeEmailTask;
-use Queue\QueueManager;
+use Queue\Queue;
 
-// Using the helper
+// Using the Facade (Recommended)
+Queue::dispatch(SendWelcomeEmailTask::class, ['user_id' => 1]);
+
+// Using the global helper
 queue(SendWelcomeEmailTask::class, ['user_id' => 1]);
-
-// Using the manager
-resolve(QueueManager::class)
-    ->job(SendWelcomeEmailTask::class, ['user_id' => 1])
-    ->queue();
 ```
+
+### Deferred Dispatching
+
+For improved performance, you can use `Queue::deferred()` to schedule a job to be dispatched _after_ the HTTP response has been sent to the user. This improves the perceived speed for the end user.
+
+```php
+use App\Auth\Tasks\SendWelcomeEmailTask;
+use Queue\Queue;
+
+// Simple deferred dispatch
+Queue::deferred(SendWelcomeEmailTask::class, ['user_id' => 1]);
+
+// Deferred dispatch to a specific queue
+Queue::deferred(SendWelcomeEmailTask::class, $data, 'emails');
+```
+
+> Since the job dispatching is deferred until after the response, `Queue::deferred()` returns `void` and does not provide a `QueuedJob` instance immediately.
 
 ### Custom Queues
 
@@ -132,32 +147,24 @@ You can organize jobs into different queues (identifiers) to prioritize processi
 
 ```php
 use App\Auth\Tasks\CriticalOperationTask;
-use Queue\QueueManager;
-
-// Using the helper with identifier
-queue(CriticalOperationTask::class, $data, 'high-priority');
-
-// Using the manager
-resolve(QueueManager::class)
-    ->identifier('high-priority')
-    ->job(CriticalOperationTask::class, $data)
-    ->queue();
-```
-
-### Using the Facade (Recommended)
-
-The `Queue` facade provides a clean, static interface for dispatching jobs.
-
-```php
-use App\Auth\Tasks\SendWelcomeEmailTask;
-use App\Auth\Tasks\CriticalOperationTask;
 use Queue\Queue;
-
-// Simple dispatch
-Queue::dispatch(SendWelcomeEmailTask::class, ['user_id' => 1]);
 
 // Dispatch to a specific queue
 Queue::dispatch(CriticalOperationTask::class, $data, 'high-priority');
+```
+
+### Using the Manager (Advanced)
+
+If you need more granular control, you can use the `QueueManager` directly:
+
+```php
+use App\Auth\Tasks\SendWelcomeEmailTask;
+use Queue\QueueManager;
+
+resolve(QueueManager::class)
+    ->identifier('default')
+    ->job(SendWelcomeEmailTask::class, ['user_id' => 1])
+    ->queue();
 ```
 
 ## Scheduling Jobs
@@ -637,25 +644,44 @@ Queue settings are defined in your configuration files (accessed via `ConfigServ
 
 ## Best Practices
 
-1. **Use appropriate time units**: Choose the most readable unit (days vs hours vs minutes).
-2. **Consider timezones**: Be aware of timezone differences for global applications.
-3. **Validate calculations**: Ensure calculated dates make sense for your use case.
-4. **Chain thoughtfully**: Keep chains readable and logical.
-5. **Document scheduled tasks**: Comment why tasks are scheduled at specific intervals.
-6. **Handle failures gracefully**: Implement proper error handling in your `execute()` method.
-7. **Use occurrence wisely**: Only use `self::always()` for truly recurring tasks. Use `self::once()` otherwise.
-8. **Monitor queue workers**: Ensure your queue workers are running in production.
+- **Use appropriate time units**: Choose the most readable unit (days vs hours vs minutes).
+- **Consider timezones**: Be aware of timezone differences for global applications.
+- **Validate calculations**: Ensure calculated dates make sense for your use case.
+- **Chain thoughtfully**: Keep chains readable and logical.
+- **Document scheduled tasks**: Comment why tasks are scheduled at specific intervals.
+- **Handle failures gracefully**: Implement proper error handling in your `execute()` method.
+- **Use occurrence wisely**: Only use `self::always()` for truly recurring tasks. Use `self::once()` otherwise.
+- **Monitor queue workers**: Ensure your queue workers are running in production.
+- **Payload Simplicity**: Pass primitive data (IDs, strings) instead of full objects to ensure security and serialization reliability.
 
-## Deferred Dispatching
+## Security & Payloads
 
-For improved performance, you can use `Queue::deferred()` to schedule a job to be dispatched _after_ the HTTP response has been sent to the user. This is a "fire-and-forget" approach that speeds up the user experience by moving the database insertion of the job to the end of the request lifecycle.
+To protect against **PHP Object Injection** vulnerabilities, the Anchor Queue system is hardened by default.
+
+### Primitive Payloads Only
+
+When dispatching jobs, you should only pass **primitive data types** (arrays, strings, integers, booleans) in the payload. The `QueueDispatcher` is configured to disallow the reconstruction of arbitrary PHP objects during unserialization (`allowed_classes => false`).
+
+#### Safe Example
 
 ```php
-use Queue\Queue;
-use App\Jobs\ProcessReport;
-
-// Job will be dispatched to the database after the response is sent
-Queue::deferred(ProcessReport::class, ['report_id' => 123]);
+// Pass an ID and an array of strings
+Queue::dispatch(ProcessUserTask::class, [
+    'user_id' => 123,
+    'action'  => 'recalculate_stats'
+]);
 ```
 
-> Since the job dispatching is deferred, `Queue::deferred()` returns `void` and does not provide the created `QueuedJob` instance or ID immediately.
+#### Avoid
+
+```php
+// Do NOT pass full objects
+Queue::dispatch(ProcessUserTask::class, [
+    'user' => $userObject // This will fail to unserialize in the worker
+]);
+```
+
+#### Why this matters
+
+By restricting payloads to primitives, we ensure that an attacker cannot execute malicious code by manipulating the queued job data. This "Option 2" security stance ensures the framework remains robust even if the database is compromised.
+

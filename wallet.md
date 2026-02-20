@@ -1,6 +1,6 @@
 # Wallet
 
-The Wallet provides a production-ready digital wallet system with double-entry ledger accounting, ensuring financial integrity through atomic transactions, immutable records, and automatic balance reconciliation.
+The Wallet package provides a digital wallet system with double-entry ledger accounting, ensuring financial integrity through atomic transactions, immutable records, and automatic balance reconciliation.
 
 ## Features
 
@@ -26,7 +26,7 @@ php dock package:install Wallet --packages
 
 This will automatically:
 
-- Run database migrations `wallet_*` tables
+- Run the migration for Wallet tables.
 - Register the service provider
 - Publish the configuration file
 
@@ -118,7 +118,7 @@ Wallet::transfer($senderWalletId, $receiverWalletId, 50, 'USD'); // $50.00
 
 ## Model Integration
 
-#### Recommended
+### Recommended
 
 Add the `HasWallet` trait to any user or business model:
 
@@ -168,9 +168,9 @@ if ($user->canAfford(50, 'USD')) { // $50.00 USD
 
 This section demonstrates the complete wallet lifecycle in a typical SaaS or e-commerce application.
 
-#### Scenario: User Registration to First Purchase
+### Scenario: User Registration to First Purchase
 
-**Setup: Add HasWallet to User Model**
+#### Add HasWallet to User Model
 
 ```php
 // App/Models/User.php
@@ -182,7 +182,7 @@ class User extends BaseModel
 }
 ```
 
-**User Signs Up → Wallet is Created Automatically**
+#### User Signs Up
 
 When a user registers, you can create their wallet immediately or let it be created on first transaction:
 
@@ -209,7 +209,7 @@ public function register(): Response
 }
 ```
 
-**3. User Funds Wallet via Payment Gateway**
+#### User Funds Wallet
 
 When the user wants to add money, you integrate with the `Pay` package:
 
@@ -242,7 +242,7 @@ public function initiateFunding(): Response
 }
 ```
 
-**Webhook: Payment Confirmed → Wallet Credited**
+#### Webhook: Payment Confirmed
 
 The `WalletFundingListener` in the Wallet package listens for `PaymentSuccessful` events and credits the wallet automatically:
 
@@ -255,7 +255,7 @@ The `WalletFundingListener` in the Wallet package listens for `PaymentSuccessful
 
 - User's wallet now shows $50.00
 
-**User Makes a Purchase**
+#### User Makes a Purchase
 
 Now the user can spend their wallet balance:
 
@@ -303,7 +303,7 @@ public function checkout(): Response
 }
 ```
 
-**Admin Issues a Refund**
+#### Admin Issues a Refund
 
 If the order is cancelled, you can refund the transaction:
 
@@ -330,7 +330,7 @@ public function refundOrder(): Response
 }
 ```
 
-**Peer-to-Peer Transfer (Optional)**
+#### Peer-to-Peer Transfer
 
 If your app supports sending money between users:
 
@@ -360,7 +360,7 @@ public function send(): Response
 }
 ```
 
-## Implementation
+## Detailed Implementation
 
 ### E-commerce Purchase Flow
 
@@ -375,17 +375,17 @@ class OrderController extends BaseController
 {
     public function checkout(): Response
     {
-        // 1. Validate Input (Simple check for example)
+        // Validate Input (Simple check for example)
         if (!$this->request->filled(['total_cents', 'order_id'])) {
             return $this->response->json(['error' => 'Missing fields'], 400);
         }
 
-        // 2. Get Authenticated User
+        // Get Authenticated User
         $user = $this->auth->user();
         $total = Money::make($this->request->post('total_cents'), 'USD');
 
         try {
-            // 3. Atomic debit operation (Fluent)
+            // Atomic debit operation (Fluent)
             $transaction = $user->transaction('USD')
                 ->debit($total)
                 ->description("Order #{$this->request->post('order_id')}")
@@ -395,7 +395,7 @@ class OrderController extends BaseController
                 ])
                 ->execute();
 
-            // 4. Return Success Response
+            // Return Success Response
             return $this->response->json([
                 'status' => 'success',
                 'new_balance' => $user->getBalance()->formatSimple(),
@@ -783,10 +783,10 @@ php dock wallet:reconcile
 
 ## Security Best Practices
 
-1.  **Row Locking**: The package uses `LockForUpdate` during transactions. Do not manually update wallet balances in the database; always use the API.
-2.  **Idempotency**: Pass unique `idempotency_key` (or unique `reference_id`) for critical payments to prevent double-charging on retries.
-3.  **Positive Verification**: The system throws `InvalidAmountException` if negative amounts are passed. Do not suppress this exception.
-4.  **Logging**: Enable `WALLET_LOGGING` in production to audit all financial movements.
+- **Row Locking**: The package uses `LockForUpdate` during transactions. Do not manually update wallet balances in the database; always use the API.
+- **Idempotency**: Pass unique `idempotency_key` (or unique `reference_id`) for critical payments to prevent double-charging on retries.
+- **Positive Verification**: The system throws `InvalidAmountException` if negative amounts are passed. Do not suppress this exception.
+- **Logging**: Enable `WALLET_LOGGING` in production to audit all financial movements.
 
 ## API Quick Reference
 

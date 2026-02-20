@@ -104,3 +104,35 @@ The Application Playground (`php dock playground`) uses a persistent shell confi
 
 - **Context Injection**: The `PlaygroundCommand` automatically binds the running `Container` and `Config` instances into the shell.
 - **Auto-Imports**: Defined in `App/Config/playground.php`. This allows you to reference your Models or Services using their Short Name (e.g., `User::all()`) instead of the Full Namespace, making it feel like a truly interactive exploration tool.
+
+## State Management & Reset
+
+In long-running environments (like Queue Workers or the built-in development server), PHP's shared-nothing architecture is challenged by persistent memory growth. Anchor solves this via a robust **Termination Workflow**.
+
+### TerminableInterface
+
+Services that accumulate data over time (e.g., query logs, message collectors) should implement the `Core\Contracts\TerminableInterface`.
+
+```php
+interface TerminableInterface
+{
+    public function terminate(): void;
+}
+```
+
+### The Termination Flow
+
+When `Kernel::terminate()` is called:
+
+- It retrieves all loaded service provider instances from the `ProviderManager`.
+- Any provider implementing `TerminableInterface` has its `terminate()` method called.
+  - **`Debugger`**: Resets the `DebugBar` collector data.
+  - **`Deferrer`**: Clears any pending deferred task payloads.
+- Static framework state is explicitly cleared:
+  - **`Database\Connection`**: Clears the query log.
+  - **`Helpers\Benchmark`**: Resets all timers and memory markers.
+  - **`Core\Route\UrlResolver`**: Clears static route resolution and controller caches.
+  - **`Core\Event`**: Clears event fakes (persists listeners for worker stability).
+  - **`Helpers\String\Inflector`**: Clears the pluralization/singularization cache.
+
+This ensures that even in long-running processes (like Queue Workers), the framework remains stable. The `Event::reset()` call specifically clears any event fakes used in testing while preserving the registered listeners, ensuring the worker remains functional for subsequent jobs without memory growth from mocked state.
