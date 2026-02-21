@@ -4,7 +4,7 @@ A fluent API for executing dock commands programmatically with comprehensive err
 
 ## Installation
 
-The `DockCommand` class is available globally via the `dock()` helper function.
+The `DockCommand` class is available globally via the `dock()` helper function. It automatically handles the `php dock` prefix for all commands.
 
 ## Basic Usage
 
@@ -104,10 +104,24 @@ dock('test')
     ->run();
 ```
 
-### Dry Run Mode
+### Previewing Commands
+
+You can preview the final command string without executing it.
 
 ```php
-// Test command without executing
+$command = dock('migration:run')
+    ->option('file', '2024_01_01_create_user')
+    ->buildCommand();
+
+echo $command; // php dock migration:run --file=2024_01_01_create_user
+```
+
+### Dry Run Mode
+
+Similar to `buildCommand()`, `dryRun()` sets the instance to return the command string when `run()` is called.
+
+```php
+// Test command without executing (returns CommandResult with buildCommand as output)
 $result = dock('migration:run')
     ->option('file', '2024_01_01_create_user')
     ->dryRun()
@@ -147,11 +161,16 @@ if ($result->failed()) {
 
 ### Asynchronous Execution
 
+For non-blocking execution, `runAsync()` returns a `Symfony\Component\Process\Process` instance. This allows you to monitor the process, check the PID, or send signals.
+
 ```php
 // Non-blocking execution
 $process = dock('queue:work')
     ->option('identifier', 'emails')
     ->runAsync();
+
+// Access underlying Symfony Process methods
+echo "PID: " . $process->getPid();
 
 // Do other work...
 
@@ -323,7 +342,7 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
 
 ## Best Practices
 
-1. **Always handle failures:**
+**Always handle failures:**
 
    ```php
    $result = dock('command')->runQuietly();
@@ -332,19 +351,19 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
    }
    ```
 
-2. **Use appropriate timeouts:**
+**Use appropriate timeouts:**
 
    ```php
    dock('long-running-command')->timeout(1800)->run();
    ```
 
-3. **Add retry logic for transient failures:**
+**Add retry logic for transient failures:**
 
    ```php
    dock('flaky-command')->retry(3, 2000)->run();
    ```
 
-4. **Use dry-run for testing:**
+**Use dry-run for testing:**
 
    ```php
    if (app()->environment('testing')) {
@@ -352,7 +371,7 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
    }
    ```
 
-5. **Log command execution:**
+**Log command execution:**
    ```php
    $result = dock('command')->run();
    Log::info('Command executed', [
@@ -366,10 +385,12 @@ function startQueueWorker(string $identifier, bool $daemon = false): void
 
 The `DockCommand` class provides multiple layers of error handling:
 
-1. **Validation errors** - Thrown immediately for invalid configurations
-2. **Execution errors** - Captured in CommandResult
-3. **Timeout errors** - Handled gracefully with proper error messages
-4. **Retry logic** - Automatic retries for transient failures
+- **Validation errors** - Thrown immediately for invalid configurations
+- **Execution errors** - Captured in CommandResult
+- **Timeout errors** - Handled gracefully with proper error messages
+- **Retry logic** - Automatic retries for transient failures
+
+> **Merging Behavior**: Multiple calls to `env()`, `arguments()`, `options()`, or `flags()` will merge with previous values. Flags and options are automatically prefixed with `--`. If you need to use single-dash options (like `-v`), you can pass them as a raw `argument()`.
 
 ```php
 try {

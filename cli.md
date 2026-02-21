@@ -400,6 +400,22 @@ php dock validation:delete Login,Signup Auth --type=form
 php dock validation:create Login Auth -t form
 ```
 
+### Middleware
+
+```bash
+# Create middleware (defaults to Web group)
+php dock middleware:create MyMiddleware
+
+# Create middleware for API group
+php dock middleware:create MyApiMiddleware --api
+
+# Create middleware for Web group explicitly
+php dock middleware:create MyWebMiddleware --web
+
+# Delete middleware
+php dock middleware:delete MyMiddleware
+```
+
 ### View Components
 
 ```bash
@@ -439,7 +455,13 @@ php dock inapp-notification:create Login
 
 # Delete in-app notification
 php dock inapp-notification:delete Login
-# Optional: Module name as second argument
+
+# Create message notification (automatically appends 'MessageNotification')
+php dock message-notification:create Welcome User
+# Creates: WelcomeMessageNotification
+
+# Delete message notification
+php dock message-notification:delete Welcome User
 ```
 
 ### Queue Task
@@ -547,27 +569,41 @@ php dock listener:delete UpdateInventory Shop
 ### Code Quality & Repair
 
 ```bash
+# Automatically format code (removes unnecessary comments + runs Pint)
+php dock format
+
 # Run code quality checks (Pint + PHPStan)
 php dock inspect
 
-# Ultimate quality assurance check (CS Fixer + PHPStan + Tests)
+# Ultimate quality assurance check (Security + Production Readiness + Style + Tests)
 php dock sail
 ```
 
-### Code Inspection
+### Code Formatting
 
-The `inspect` command runs comprehensive code quality checks:
+The `format` command is a multi-step tool that cleans up your codebase while maintaining your style preferences.
 
 **What it does:**
 
-- **Coding Standards (Pint)** - Checks code formatting and style
-- **Static Analysis (PHPStan)** - Analyzes code for type errors and bugs
+- **Comment Cleanup**: Removes redundant docblocks, empty comments, and obvious action markers (like `// Get the users`).
+- **Code Styling (Pint)**: Automatically runs Laravel Pint to ensure consistent formatting.
 
-**Behavior:**
+**Options:**
 
-- Runs both checks even if the first one fails
-- Reports all issues found
-- Returns failure if either check fails
+- `--dry-run`: Preview changes without modifying files.
+- `--check`: Fails if any formatting issues are found (ideal for CI).
+- `--path`: Specify a target directory (e.g., `php dock format --path=App/src/Blog`).
+- `--skip-pint`: Skip the Pint formatting step.
+- `--pint-dirty`: Only format files changed in the current git branch.
+
+### Code Inspection
+
+The `inspect` command performs static analysis and style checks to ensure code integrity.
+
+**What it does:**
+
+- **Coding Style (Pint)**: Verifies that code follows established formatting rules.
+- **Static Analysis (PHPStan)**: Analyzes code for potential bugs, type mismatches, and logical errors.
 
 ```bash
 php dock inspect
@@ -575,20 +611,20 @@ php dock inspect
 
 ### Quality Assurance (Sail)
 
-The `sail` command is your **ultimate assertion of readiness** before deployment. It runs all quality checks sequentially and fails immediately if any step fails.
+The `sail` command is your **final pre-flight checklist** before shipping. It runs a sequential battery of tests and fails immediately if any step encounters an issue.
 
 **What it does (in order):**
 
-- **Inspection Check (Zero Errors)**:
-   - Coding Standards (Pint)
-   - Static Analysis (PHPStan)
-- **Functionality Check (Operational Readiness)** - Full test suite (Pest)
+1. **Security Audit**: Runs `composer audit` to check for known vulnerabilities in your dependencies.
+2. **Production Readiness Scan**: Scans your environment and configuration for production-critical settings.
+3. **Integrity & Style Inspection**: Runs both Pint and the comment cleanup check in parallel.
+4. **Operational Readiness & Testing**: Executes your full test suite using Pest.
 
 **Behavior:**
 
-- Stops immediately on first failure
-- Only succeeds if ALL checks pass
-- Validates prerequisites before running
+- Stops immediately on the first failure.
+- Returns a success code only if ALL checks pass.
+- Requires all dependencies (Pint, Pest) to be installed.
 
 ```bash
 php dock sail
@@ -668,20 +704,44 @@ php dock docs:sync
 
 Anchor provides a class-based task scheduling system that eliminates the need for managing multiple cron entries.
 
-**Automatic Discovery:**
-The framework automatically discovers any class implementing `Cron\Interfaces\Schedulable` within `packages/*/Schedules/` and `App/Schedules/`.
+**Discovery Logic:**
+
+- Scans `App/Schedules` for `*Schedule.php`
+- Scans `packages/*/Schedules` for `*Schedule.php`
+- Automatically registers and executes tasks that are due.
 
 **Running the Scheduler:**
+
 To execute the scheduled tasks, you only need to add a single cron entry to your server:
 
 ```bash
 * * * * * cd /path-to-your-project && php dock schedule:run >> /dev/null 2>&1
 ```
 
-**Discovery Logic:**
-- Scans `App/Schedules` for `*Schedule.php`
-- Scans `packages/*/Schedules` for `*Schedule.php`
-- Automatically registers and executes tasks that are due.
+### Package Management
+
+Anchor includes a built-in package manager for downloading and installing official or custom packages.
+
+```bash
+# Download a package from GitHub
+php dock download Ally
+
+# Download and immediately install
+php dock download Ally --install
+
+# Install an existing package
+php dock package:install Tenancy
+
+# Uninstall a package (and rollback its migrations)
+php dock package:uninstall Tenancy --packages
+```
+
+**Installation Sources:**
+
+- `--system`: Targets packages located in the `System/` directory.
+- `--packages`: Targets packages located in the `packages/` directory.
+
+> **Note**: Official packages are typically hosted at `github.com/beniyke/{package-name}`.
 
 ### Maintenance & Auditing
 
@@ -701,6 +761,9 @@ php dock verify:cleanup
 # Display OTP verification statistics
 php dock verify:stats
 ```
+
+> [!NOTE]
+> Some commands in the sections below (Tenancy, Wallet, etc.) are only available when their corresponding package is installed and active in your `config/providers.php`.
 
 ### Tenancy
 
