@@ -6,7 +6,9 @@ Anchor includes a lightweight ORM that makes working with database tables intuit
 
 Models reside in `App/src/{Module}/Models/` and extend `Database\BaseModel`.
 
-- **$table**: The database table name. Defaults to a **singular** version of the class name (e.g., `user` for `User` model). While it can be plural, singular is the framework's opinionated preference.
+> **Singular table names**: The framework uses singular table names by convention (e.g., `user` for `User`, `post` for `Post`). The `$table` property defaults to a singular version of the class name. While plural names are technically supported, singular is the opinionated standard across all framework docs, generators, and migrations.
+
+- **$table**: The database table name.
 - **$primaryKey**: The column representing the primary key. Defaults to `id`.
 - **$fillable**: An array of attributes that are mass-assignable.
 - **$guarded**: Attributes that should be protected from mass-assignment.
@@ -16,6 +18,26 @@ Models reside in `App/src/{Module}/Models/` and extend `Database\BaseModel`.
 - **$visible**: Attributes that should be included in serialization (whitelist).
 - **$appends**: Accessors to include in the model's array/JSON representation.
 - **$rules**: Validation rules for the model.
+
+### Generating Models
+
+```bash
+php dock model:create Post Post
+```
+
+### Generating Models from Migrations
+
+Use the `--migration` flag to automatically generate a model with inferred properties from an existing migration. Both the class name and the full migration filename are accepted:
+
+```bash
+# Using class name
+php dock model:create Post Post --migration=CreatePostTable
+
+# Using full migration filename
+php dock model:create Post Post -m 2025_10_26_191939_create_post_table
+```
+
+This parses the migration file and generates a model with `$fillable`, `$casts`, `$hidden`, relationship methods, query scopes, and PHPDoc `@property` annotations. See the [CLI docs](cli.md#smart-model-generation) for details.
 
 ## Retrieving Models
 

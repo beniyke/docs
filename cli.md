@@ -333,12 +333,38 @@ php dock controller:delete Tweet Tweet
 ### Model
 
 ```bash
-# Create a model
+# Create a basic model
 php dock model:create Tweet Tweet
 
 # Delete a model
 php dock model:delete Tweet Tweet
 ```
+
+#### Smart Model Generation
+
+Generate a fully-featured model by parsing an existing migration file:
+
+```bash
+# Using class name
+php dock model:create Post Post --migration=CreatePostTable
+
+# Using full migration filename
+php dock model:create Post Post -m 2025_10_26_191939_create_post_table
+```
+
+The `--migration` option accepts the migration class name or filename (with or without timestamp prefix). The generator parses the migration and automatically infers:
+
+| Inferred Feature | Source |
+| :--- | :--- |
+| `$fillable` | All non-system columns |
+| `$casts` | Column types (int, boolean, datetime, array, etc.) |
+| `$hidden` | Columns named `password`, `*_token`, `*_secret` |
+| `belongsTo()` | Foreign key definitions and `_id` columns |
+| `scopeX()` | Boolean columns (positive/negative) and enum columns |
+| PHPDoc `@property` | All columns with correct types |
+| `SoftDeletes` trait | Presence of `softDeletes()` |
+
+> Relationships inferred from foreign key definitions are fully generated. Relationships inferred only from `_id` column naming conventions are generated but commented out for manual review.
 
 ### Service
 

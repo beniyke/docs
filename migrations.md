@@ -471,14 +471,15 @@ class AddPhoneToUserTable extends BaseMigration
 
 ## Best Practices
 
-1. **Always define down()**: Make migrations reversible
-2. **Use foreign keys**: Maintain referential integrity
-3. **Add indexes**: For frequently queried columns
-4. **Use timestamps**: Track when records are created/updated
-5. **Test rollbacks**: Ensure down() works correctly
-6. **One change per migration**: Keep migrations focused
-7. **Use descriptive names**: Make migration purpose clear
-8. **Order matters**: Create parent tables before children
+1. **Use singular table names**: Table names follow the **singular** convention (e.g., `user`, `post`, `order`). This matches the model class name and is the framework's opinionated preference.
+2. **Always define down()**: Make migrations reversible
+3. **Use foreign keys**: Maintain referential integrity
+4. **Add indexes**: For frequently queried columns
+5. **Use timestamps**: Track when records are created/updated
+6. **Test rollbacks**: Ensure down() works correctly
+7. **One change per migration**: Keep migrations focused
+8. **Use descriptive names**: Make migration purpose clear
+9. **Order matters**: Create parent tables before children
 
 ## Schema Methods
 
