@@ -54,6 +54,7 @@ Engineered for performance and scalability, the Anchor ecosystem features a high
 | Package | Description |
 | :--- | :--- |
 | ![Client](/public/assets/docs/icons/client.svg) **Client** | Centralized customer identity hub for managing standalone clients and reseller-managed portfolios. |
+| ![Academy](/public/assets/docs/icons/academy.svg) **Academy** | Comprehensive Learning Management System (LMS) with course builders, student enrollments, and progress tracking. |
 | ![Scribe](/public/assets/docs/icons/scribe.svg) **Scribe** | Professional blogging and SEO-optimized CMS with scheduled publishing and engagement analytics. |
 | ![Rank](/public/assets/docs/icons/rank.svg) **Rank** | Smart SEO metadata and automated route titles based on deep integration with the Route Context system. |
 | ![Media](/public/assets/docs/icons/media.svg) **Media** | Polymorphic media library with automated image conversions, collections, and cloud storage support. |
