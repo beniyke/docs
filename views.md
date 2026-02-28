@@ -6,7 +6,7 @@ Views contain the HTML of your application and separate your controller/applicat
 
 Views are stored in module-specific directories:
 
-```
+```text
 App/src/{Module}/Views/Templates/
 ```
 
@@ -62,6 +62,10 @@ public function index()
 ```
 
 The view engine automatically looks in the current module's `Views/Templates/` directory.
+
+> [!IMPORTANT]
+> **Isolated Scope**: As of version 2.6.0, the view engine uses isolated variable scope during compilation. This prevents developer-defined variables from shadowing internal engine variables, ensuring a more robust rendering process. Any variables passed to the view are extracted within a closure, isolated from the `ViewEngine` instance's internal state.
+
 
 ### Dot Notation
 

@@ -81,9 +81,8 @@ class AppServiceProvider extends ServiceProvider
 <?php
 namespace App\Providers;
 
-use App\Services\Auth\ApiAuthService;
-use App\Services\Auth\Interfaces\AuthServiceInterface;
-use App\Services\Auth\WebAuthService;
+use Core\Contracts\AuthServiceInterface;
+use Security\Auth\AuthService;
 use Core\Services\DeferredServiceProvider;
 use Helpers\Http\Request;
 
@@ -96,22 +95,14 @@ class AuthServiceProvider extends DeferredServiceProvider
 
     public function register(): void
     {
-        $this->container->singleton(WebAuthService::class);
-        $this->container->singleton(ApiAuthService::class);
-
-        // Resolve the appropriate implementation based on the request type
-        $this->container->singleton(AuthServiceInterface::class, function ($container) {
-            $request = $container->get(Request::class);
-            return $request->routeIsApi()
-                ? $container->get(ApiAuthService::class)
-                : $container->get(WebAuthService::class);
-        });
+        $this->container->singleton(AuthServiceInterface::class, AuthService::class);
+        $this->container->alias(AuthServiceInterface::class, 'auth.service');
     }
 }
 ```
 
 - **provides()** declares that this provider is responsible for `AuthServiceInterface`.
-- The framework keeps this provider dormant until `AuthServiceInterface` is requested from the container.
+- The framework keeps this provider dormant until `AuthServiceInterface` or its alias is requested.
 - **register()** uses a closure to implement conditional logic (Web vs API auth).
 
 ## Registering Providers

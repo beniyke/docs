@@ -1,6 +1,6 @@
 # Request Validation
 
-Anchor provides a robust, class-based approach to request validation for both web forms and API requests. By creating dedicated validation classes that extend `App\Core\BaseRequestValidation`, you can encapsulate validation logic, keep controllers clean, and easily reuse validation rules across different request types.
+Anchor provides a robust, class-based approach to request validation for both web forms and API requests. By creating dedicated validation classes that extend `Core\BaseRequestValidation`, you can encapsulate validation logic, keep controllers clean, and easily reuse validation rules across different request types.
 
 ### Via CLI (Recommended)
 
@@ -25,12 +25,12 @@ When deleting a validator via `php dock validation:delete`, the CLI will automat
 
 ### Manual Creation
 
-To create a validation class manually, extend the `App\Core\BaseRequestValidation` abstract class. You are required to implement the `expected()` method, and optionally override `rules()` and `parameters()` methods.
+To create a validation class manually, extend the `Core\BaseRequestValidation` abstract class. You are required to implement the `expected()` method, and optionally override `rules()` and `parameters()` methods.
 
 ```php
 namespace App\Auth\Validations\Form;
 
-use App\Core\BaseRequestValidation;
+use Core\BaseRequestValidation;
 
 class LoginFormRequestValidation extends BaseRequestValidation
 {
@@ -213,6 +213,11 @@ class LoginController extends BaseController
     }
 }
 ```
+
+> [!WARNING]
+> If `SmartValidationMiddleware` cannot find a matching validation class (e.g., you forgot to create it, or misnamed the file), it will **silently bypass validation** and proceed to the controller.
+>
+> In this scenario, calling `$this->request->validated()` will return **`null`**, which may cause a PHP `TypeError` if you pass it directly into a strictly-typed method (e.g., `public function attempt(DataTransferObject $dto)`). Always ensure your validator classes follow the naming conventions!
 
 ### Manual Injection (Legacy/Explicit)
 
@@ -960,7 +965,7 @@ When updating a record, you often want to ensure a field (like email) remains un
 ```php
 namespace App\Account\Validations\Form;
 
-use App\Core\BaseRequestValidation;
+use Core\BaseRequestValidation;
 
 class UserUpdateValidation extends BaseRequestValidation
 {

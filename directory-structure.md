@@ -171,7 +171,9 @@ System/
 ├── Notify/                 # Notifications
 ├── Package/                # Package management
 ├── Queue/                  # Queue system
-├── Security/               # Security and Firewall
+├── Security/               # Security and Authentication
+│   ├── Auth/               # Core Authentication (Service, Result)
+│   └── Firewall/           # Firewall and security rules
 └── Testing/                # Test framework core
 ```
 

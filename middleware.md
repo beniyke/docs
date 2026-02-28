@@ -55,20 +55,20 @@ The core of every middleware. It receives the current request and response objec
 
 ## Registering Middleware
 
-Middleware is configured in `App/Config/middleware.php`:
+Middleware is configured in `App/Config/middleware.php`. 
+
+> [!NOTE]
+> Core framework middlewares (`Session`, `Firewall`, `SmartValidation`) are now automatically injected by the system. You only need to register your application-specific middlewares here.
 
 ```php
 return [
     'web' => [
-        Core\Middleware\SessionMiddleware::class,
-        Security\Firewall\Middleware\FirewallMiddleware::class,
         App\Middleware\Web\RedirectIfAuthenticatedMiddleware::class,
         App\Middleware\Web\WebAuthMiddleware::class,
         App\Middleware\Web\PasswordUpdateMiddleware::class,
         Debugger\Middleware\DebuggerMiddleware::class
     ],
     'api' => [
-        Security\Firewall\Middleware\FirewallMiddleware::class,
         App\Middleware\Api\ApiAuthMiddleware::class,
     ],
 ];
@@ -86,15 +86,29 @@ Middleware is organized into groups (e.g., `web`, `api`). Routes are assigned to
 ],
 ```
 
-## Built-in Middleware
+### System Middleware
 
-### SessionMiddleware
+Anchor automatically loads essential middlewares for the `web` and `api` groups. These are defined in the `Kernel` and execute before your application middlewares.
 
-Manages session lifecycle, including periodic ID regeneration and initialization.
+#### SessionMiddleware (Web Only)
 
-- **Use Case**: Shielding against session fixation attacks and ensuring session availability for other middleware.
+Manages the session lifecycle. In Anchor 2.6.0+, the framework is **stateless by default**. Sessions are only started when this middleware is invoked.
 
-### WebAuthMiddleware
+- **Automatic Start**: `session->start()` is called automatically for the `web` group.
+- **Maintenance**: Handles periodic ID regeneration for security.
+
+#### FirewallMiddleware (Web & API)
+
+Provides advanced security filtering before the request reaches the application core.
+
+- **Automatic Application**: Applied to both `web` and `api` groups by default.
+- **Use Case**: IP whitelisting, brute-force protection, and malicious user-agent blocking.
+
+#### SmartValidationMiddleware (Web & API)
+
+Detects and executes [Request Validations](validation.md) based on convention.
+
+- **Automatic Discovery**: Automatically looks for validation classes matching the current controller and action.
 
 Handles authentication and authorization for web-based routes.
 
@@ -154,7 +168,7 @@ class PasswordUpdateMiddleware implements MiddlewareInterface
     {
         $user = $this->auth->user();
 
-        if ($user && $user->shouldUpdatePassword() && !$request->isPasswordUpdateRoute()) {
+        if ($user && $user->passwordNeedsUpdate() && !$request->isPasswordUpdateRoute()) {
             return $response->redirect($request->fullRouteByName('change-password'));
         }
 
@@ -271,19 +285,22 @@ return [
 
 ## Middleware Execution Order
 
-Middleware executes in the order defined in the configuration:
+Middleware executes in a specific order: **System Middleware** first, followed by **Application Middleware** in the order defined in your configuration.
 
-```php
-return [
-    'web' => [
-        Core\Middleware\SessionMiddleware::class,           // 1. Start session
-        FirewallMiddleware::class,          // 2. Check firewall rules
-        RedirectIfAuthenticatedMiddleware::class, // 3. Redirect if logged in
-        WebAuthMiddleware::class,           // 4. Check authentication
-        PasswordUpdateMiddleware::class,    // 5. Check password expiry
-    ],
-];
-```
+### Default Web Order
+
+1.  **`SessionMiddleware`** (System) - Starts session
+2.  **`FirewallMiddleware`** (System) - Checks security rules
+3.  **`SmartValidationMiddleware`** (System) - Validates incoming data
+4.  **`RedirectIfAuthenticatedMiddleware`** (App)
+5.  **`WebAuthMiddleware`** (App)
+6.  **`PasswordUpdateMiddleware`** (App)
+
+### Default API Order
+
+1.  **`FirewallMiddleware`** (System)
+2.  **`SmartValidationMiddleware`** (System)
+3.  **`ApiAuthMiddleware`** (App)
 
 **Request Flow**:
 

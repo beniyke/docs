@@ -192,20 +192,8 @@ To apply firewall rules globally or to specific routes, use the `FirewallMiddlew
 
 In `App/Config/middleware.php`:
 
-```php
-use Security\Firewall\Middleware\FirewallMiddleware;
-
-return [
-    'web' => [
-        // ...
-        FirewallMiddleware::class,
-    ],
-    'api' => [
-        // ...
-        FirewallMiddleware::class,
-    ]
-];
-```
+> [!NOTE]
+> As of Anchor 2.6.0, `FirewallMiddleware` is automatically applied to the `web` and `api` groups by the framework core. You only need to register it manually if you are defining a custom middleware group.
 
 The middleware automatically loads the enabled drivers defined in `App/Config/firewall.php` under the `drivers` key.
 

@@ -123,6 +123,14 @@ Use `php dock schedule:run` for **Dedicated Task Scheduling**. This only execute
 
 ## Modular Package Scheduling
 
-If you are developing a package, you can place your `Schedulable` classes in the `Schedules/` directory of your package (e.g., `packages/MyPackage/Schedules/`). The framework will automatically discover and register them when the package is installed.
+If you are developing a package, you can place your `Schedulable` classes in the `Schedules/` directory of your package (e.g., `packages/MyPackage/Schedules/`). The framework automatically discovers and registers them during the boot process.
+
+### Naming Conventions
+
+To ensure automatic discovery, your schedule classes must:
+
+- Reside in a `Schedules` directory.
+- Follow the `*Schedule.php` naming convention (e.g., `CleanupSchedule.php`).
+- Implement the `Cron\Interfaces\Schedulable` interface.
 
 > **Distinguishing from Queues**: While the `Queue` system handles immediate background jobs (e.g., sending an email after registration), the `Cron` system is intended for recurring maintenance (e.g., daily backups). `cron.php` handles both seamlessly.

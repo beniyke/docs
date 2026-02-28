@@ -4,50 +4,35 @@ Anchor provides a multi-driver, enterprise-grade authentication ecosystem. This 
 
 ## Quick Implementation
 
-### Web Authentication (`WebAuthService`)
+### Core Authentication Service (`AuthService`)
 
-Most web applications use the `WebAuthService` for traditional browser-based flows. It utilizes the `session` guard to track users across requests.
+Anchor provides a single `AuthService` in the core layer that handles both Web and API flows. It returns an `AuthResult` object which provides a structured response.
 
 ```php
-public function login(LoginRequest $request): bool 
+public function login(LoginRequest $request): AuthResult
 {
-    // Use attempt() to verify credentials AND establish a session
-    if (!$this->auth->guard('web')->attempt($request->toArray())) {
-        Event::dispatch(new LoginFailedEvent($request->toArray(), 'web'));
-        return false;
-    }
-
-    $user = $this->user();
-    $this->flash->success('Welcome ' . $user->name);
-    Event::dispatch(new LoginEvent($user, $request->hasRememberMe(), 'web'));
-
-    return true;
+    // The core service handles the complexity of guards and events
+    return $this->auth->login($request);
 }
 ```
 
-### API Authentication (`ApiAuthService`)
-
-API flows are typically stateless and rely on tokens. The `ApiAuthService` uses the `token` guard.
+In your controllers, you can handle the result:
 
 ```php
-public function login(LoginRequest $request): bool 
-{
-    // Use attempt() to verify credentials and set the user for the request
-    if (!$this->auth->guard('api')->attempt($request->toArray())) {
-        return false;
-    }
+$result = $this->auth->login($request);
 
-    $user = $this->user();
-    $token = $this->token_manager->createToken($user, 'Mobile App');
-    
-    // The token is returned to the client for subsequent requests
-    return true;
+if ($result->failed()) {
+    $this->flash->error($result->message());
+    return;
 }
+
+$user = $result->user();
+$this->flash->success('Welcome back!');
 ```
 
 ### `validate()` vs `attempt()`
 
-Understanding the difference between these two methods is crucial for secure implementation:
+Understanding the difference between these two methods (available via the `AuthManager`) is crucial:
 
 - **`attempt(array $credentials)`**: **Stateful.** It verifies the credentials and, if successful, automatically logs the user in (e.g., creates a session or sets the user for the current request).
 - **`validate(array $credentials)`**: **Stateless.** It only checks if the credentials are correct and returns a boolean. It does **not** log the user in. Use this for "Confirm Password" checks before sensitive actions.
@@ -87,7 +72,7 @@ Implement the `Security\Auth\Interfaces\UserSourceInterface`. Sources are typica
 |**Auth Manager**|Singleton factory that resolves and caches Guards.|`System/Security/Auth/AuthManager.php`|
 |**Guards**|Manage request-level authentication state (Session/Token).|`System/Security/Auth/Guards/`|
 |**User Sources**|Abstract the retrieval of users from storage.|`System/Security/Auth/Sources/`|
-|**Auth Services**|Application-level logic for Web or API flows.|`App/Services/Auth/`|
+|**Auth Services**|Core-level logic for Web or API flows.|`System/Security/Auth/AuthService.php`|
 
 ### Multi-Auth Architecture
 

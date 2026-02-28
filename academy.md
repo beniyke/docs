@@ -108,7 +108,7 @@ To build effectively with Academy, it's important to understand the hierarchy of
 
 - **Programs**: The container for the entire course (e.g., "Fullstack Web Development").
 - **Modules**: Logical groupings within a program (e.g., "Module 1: Introduction to PHP").
--**Lessons**: The actual learning units (Text, Video, or Quiz).
+- **Lessons**: The actual learning units (Text, Video, or Quiz).
 - **Assessments**: Quizzes or exams attached to modules or lessons to validate learning.
 
 ### The Learner Lifecycle
@@ -172,11 +172,11 @@ $canAccess = Academy::programs()->canAccess($userId, $lessonB->id); // returns f
 
 Academy provides "Deep Fetching" methods to retrieve a full tree of data for common entities. All methods support both integer IDs and string `refid`s.
 
-| Method | Returns | Included Associations |
-| :--- | :--- | :--- |
-| `getProgramDetails(id)` | `array` | Modules, Lessons, Instructors, Resources, Announcements, Plans. |
-| `getLessonDetails(id)` | `array` | Parent Module/Program, Resources, Assessment, Live Session. |
-| `getEnrolmentDetails(id)`| `array` | Program Tree, Progress, Payment Instalments, Certificate, Notes. |
+| Method                    | Returns | Included Associations                                         |
+| :------------------------ | :------ | :----------------------------------------------------------- |
+| `getProgramDetails(id)`   | `array`  | Modules, Lessons, Instructors, Resources, Announcements, Plans. |
+| `getLessonDetails(id)`    | `array`  | Parent Module/Program, Resources, Assessment, Live Session.  |
+| `getEnrolmentDetails(id)` | `array`  | Program Tree, Progress, Payment Instalments, Certificate, Notes. |
 
 #### Example Usage
 
@@ -449,15 +449,78 @@ $session = Academy::liveSessions()->schedule([
 
 ### Attendance Tracking
 
-Track when learners join and leave live sessions to calculate engagement duration.
+Academy provides a robust, polymorphic attendance system to track engagement across live sessions or any other attendable entity.
 
 ```php
-// Record when a learner joins
-Academy::liveSessions()->recordAttendance($session->id, $enrolment->id);
+// 1. Using the dedicated Attendance Service
+$attendance = Academy::attendance()->record($session, $enrolment->id);
 
-// Record when they leave (auto-calculates duration)
+// 2. Recording leave (auto-calculates duration)
+Academy::attendance()->recordLeave($session, $enrolment->id);
+
+// 3. Automated tracking via LiveSessionService
+Academy::liveSessions()->recordAttendance($session->id, $enrolment->id);
 Academy::liveSessions()->recordLeave($session->id, $enrolment->id);
 ```
+
+### Attendance Analytics
+
+The `AcademyAnalyticsService` provides deep insights into learner attendance and engagement during sessions.
+
+#### Active Attendees
+
+Retrieve a list of users currently participating in an ongoing session.
+
+```php
+$active = Academy::analytics()->getActiveAttendees($session);
+```
+
+// Returns an array of objects:
+// [
+//    (object) ['user_id' => 1, 'refid' => 'USR-01', 'name' => 'Alice', 'joined_at' => '2026-03-01 10:05:00'],
+//    ...
+// ]
+
+#### Attendance Compliance
+
+Determine if learners met a minimum "seat time" requirement (in minutes). Useful for issuing certificates.
+
+```php
+$compliance = Academy::analytics()->getAttendanceCompliance($session, requiredMinutes: 45);
+```
+
+// Sample Data Structure:
+// [
+//    'compliant' => [
+//        ['user_id' => 1, 'refid' => 'USR-01', 'name' => 'Alice', 'duration_seconds' => 3000, 'duration_minutes' => 50],
+//    ],
+//    'non_compliant' => [
+//        ['user_id' => 2, 'refid' => 'USR-02', 'name' => 'Bob', 'duration_seconds' => 1200, 'duration_minutes' => 20],
+//    ],
+//    'summary' => [
+//        'total_compliant' => 1,
+//        'total_non_compliant' => 1,
+//        'required_minutes' => 45,
+//    ]
+// ]
+
+#### Drop-Off Trends
+
+Visualize when learners lose interest and leave the session, grouped into time intervals (buckets).
+
+```php
+$trend = Academy::analytics()->getDropOffTrend($session, intervalMinutes: 5);
+```
+
+// Sample Data Structure:
+// [
+//    'labels' => ['0-5 min', '5-10 min', '10-15 min'],
+//    'values' => [2, 5, 1], // Number of drop-offs in each bucket
+//    'summary' => [
+//        'total_dropoffs' => 8,
+//        'active_users' => 12 // Users who haven't dropped off yet
+//    ]
+// ]
 
 ## Community Discussions
 
@@ -495,6 +558,7 @@ Academy::discussions()->resolve($topic);
 Academy provides powerful reporting tools for learners and educators to track performance and results.
 
 ### Generating Transcripts
+
 Transcripts provide a consolidated record of all assessments and grades for an enrolment.
 
 ```php
@@ -502,6 +566,8 @@ $transcript = Academy::reports()->getTranscript($enrolmentId);
 
 // Sample Data Structure:
 // [
+//    'learner_id' => 12,
+//    'learner_refid' => 'USR-ABCD-1234',
 //    'learner_name' => 'John Doe',
 //    'program_title' => 'Mastering Anchor',
 //    'status' => 'active',
@@ -519,6 +585,7 @@ $transcript = Academy::reports()->getTranscript($enrolmentId);
 ```
 
 ### Student Performance Timeline
+
 Visualize a learner's performance over time.
 
 ```php
@@ -532,6 +599,7 @@ $performance = Academy::analytics()->getLearnerPerformance($enrolmentId);
 ```
 
 ### Detailed Progress Reports
+
 Break down lesson completion with historical logs.
 
 ```php
@@ -550,6 +618,7 @@ $report = Academy::reports()->getProgressReport($enrolmentId);
 ```
 
 ### Lifecycle History
+
 A unified log of all engagement events.
 
 ```php
@@ -587,6 +656,184 @@ $trends = Academy::analytics()->getHistory('enrolments', '30d');
 //    'labels' => ['Feb 01', 'Feb 02', ...],
 //    'values' => [12, 15, 8, 20, ...]
 // ]
+```
+
+### Deep Learner Analytics
+
+For enterprise-level tracking and reporting, you can retrieve heavily detailed and aggregated metrics for individual learners and entire cohorts.
+
+#### Comprehensive Learner Metrics
+
+Fetch a massive unified nested array detailing every facet of a learner's journey, including their attendance, transcripts, and overall performance.
+
+```php
+$metrics = Academy::analytics()->getLearnerMetrics($enrolmentId);
+
+// Sample Data Structure:
+// [
+//    'transcript' => [
+//        'learner_name' => 'John Doe',
+//        'program_title' => 'Mastering Anchor',
+//        'assessments' => [...]
+//    ],
+//    'progress' => [
+//        'total_lessons' => 20,
+//        'completed_count' => 9,
+//        'percentage' => 45
+//    ],
+//    'performance' => [
+//        'labels' => ['02-15', '02-18'],
+//        'values' => [85, 90]
+//    ],
+//    'attendance' => [
+//        'sessions' => [...],
+//        'summary' => ['compliance_rate' => 70]
+//    ],
+//    'engagement_score' => 82
+// ]
+```
+
+#### Individual Attendance Compliance & History
+
+Identify whether a learner has met the required duration for live sessions to be considered "compliant", or retrieve a comprehensive history of attendance records filtered by any type (including the new `AcademyOfflineClass`).
+
+```php
+use Academy\Models\AcademyLiveSession;
+use Academy\Models\AcademyOfflineClass;
+
+// 1. Live Session Compliance (Default)
+$attendance = Academy::analytics()->getLearnerAttendanceReport($enrolmentId, AcademyLiveSession::class, requiredMinutes: 45);
+
+// 2. Filter by specific type (e.g. Offline Classes)
+$offline = Academy::analytics()->getLearnerAttendanceReport($enrolmentId, AcademyOfflineClass::class);
+
+// 3. See ALL attendance records
+$all = Academy::analytics()->getLearnerAttendanceReport($enrolmentId, attendableType: null);
+```
+
+#### Case 1: Live Session Sample Data
+
+```json
+ {
+    "sessions": [
+        {"session_id": 1, "duration_minutes": 50, "is_compliant": true}
+    ],
+    "summary": {
+        "total_sessions": 10,
+        "attended_sessions": 8,
+        "compliant_sessions": 7,
+        "compliance_rate": 70
+    }
+ }
+```
+
+#### Case 2 & 3: Generic/Filtered Sample Data
+
+```json
+ {
+    "records": [
+        {
+            "id": 1,
+            "type": "Academy\\Models\\AcademyLiveSession",
+            "target_id": 101,
+            "joined_at": "2026-03-01 10:00:00",
+            "left_at": "2026-03-01 11:00:00",
+            "duration_minutes": 60
+        }
+    ],
+    "summary": {
+        "total_count": 1,
+        "total_duration_minutes": 60,
+        "filtered_by": "all"
+    }
+ }
+```
+
+#### Program Learners Grid Matrix (At a Glance)
+
+Generate a robust grid of all learners within a specific program, ideal for an instructor's dashboard.
+
+```php
+$grid = Academy::analytics()->getProgramLearnersReport($programId);
+
+// Sample Data Structure:
+// [
+//    [
+//        'user_id' => 12,
+//        'refid' => 'USR-ABCD-1234',
+//        'name' => 'John Doe',
+//        'status' => 'active',
+//        'progress_percent' => 85,
+//        'average_score' => 92,
+//        'attendance_compliance_rate' => 100
+//    ],
+//    ...
+// ]
+```
+
+#### Advanced Enterprise Reporting
+
+Instructors can also identify program bottlenecks (where users drop off), flag at-risk learners, calculate overall engagement scores, and see which assessment questions have high failure rates.
+
+```php
+// Find which lessons users get stuck on the most
+$bottlenecks = Academy::analytics()->getProgramBottlenecks($programId);
+
+// Find active learners with < 20% progress who haven't logged activity in 14 days
+$atRisk = Academy::analytics()->getAtRiskLearners($programId, maxProgress: 20, idleDays: 14);
+
+// Get failure rates for specific quiz questions
+$questionDifficulty = Academy::analytics()->getAssessmentQuestionMetrics($assessmentId);
+
+// Calculate a 0-100 universal engagement score for a learner
+$engagement = Academy::analytics()->getLearnerEngagementScore($enrolmentId);
+```
+
+#### Sample Response: `getProgramBottlenecks`
+
+```json
+[
+    {
+        "lesson_id": 5,
+        "title": "Advanced SQL Joins",
+        "stalled_learners": 45,
+        "stall_rate_percent": 12.5
+    }
+]
+```
+
+#### Sample Response: `getAtRiskLearners`
+
+```json
+[
+    {
+        "user_id": 101,
+        "refid": "USR-XYZ-987",
+        "name": "John Doe",
+        "progress_percent": 15,
+        "last_activity": "2026-02-10",
+        "days_inactive": 18
+    }
+]
+```
+
+#### Sample Response: `getAssessmentQuestionMetrics`
+
+```json
+[
+    {
+        "question_id": 12,
+        "content": "What is the primary key of...?",
+        "total_attempts": 150,
+        "failure_rate_percent": 75.5
+    }
+]
+```
+
+#### Sample Response: `getLearnerEngagementScore`
+
+```json
+82 // Unified 0-100 score
 ```
 
 ### Smart & Semantic Search V2
@@ -652,6 +899,7 @@ $wishlist = Academy::enrolments()->getWishlist($userId);
 Academy includes built-in tools for keeping learners informed and engaged.
 
 ### Program Announcements
+
 Send broadcast messages to all enrolled learners.
 
 ```php
@@ -665,6 +913,7 @@ $announcement = AcademyAnnouncement::create([
 ```
 
 ### Discounts & Coupons (Wave Integration)
+
 Discounts are handled via the **Wave** package. You can create coupons and apply them during the checkout/enrolment process.
 
 ```php
@@ -759,12 +1008,12 @@ Academy::assessments()->grantExtension($submission, '2026-03-30 23:59:59');
 
 Academy includes robust maintenance tools to handle background tasks.
 
-| Command                     | Description                                              |
-| :-------------------------- | :------------------------------------------------------- |
-| `academy:verify-cert {num}` | Verify a learner's certificate manually.                |
-| `academy:credentials:issue` | Bulk issue credentials to learners who completed courses. |
-| `academy:payments:sync`     | Pull payment statuses from external gateways.            |
-| `academy:prune:expired`     | Clean up expired enrolments and stale waitlists.        |
+| Command                     | Description                                               |
+| :-------------------------- | :-------------------------------------------------------- |
+| `academy:verify-cert {num}` | Verify a learner's certificate manually.                  |
+| `academy:credentials:issue` | Bulk issue credentials to learners who completed courses.  |
+| `academy:payments:sync`     | Pull payment statuses from external gateways.              |
+| `academy:prune:expired`     | Clean up expired enrolments and stale waitlists.          |
 
 **Production Tip**: Automate these tasks via Cron.
 
@@ -788,21 +1037,24 @@ Academy is designed primarily as a **Self-Paced, Duration-Based** system.
 
 ### Academy Facade
 
-| Method           | Returns                   | Description                               |
-| :--------------- | :------------------------ | :---------------------------------------- |
-| `program()`      | `ProgramBuilder`          | Start a fluent program definition.        |
-| `enrol(...)`     | `AcademyEnrolment`        | Quick enrolment shortcut.                 |
-| `gradeQuiz(...)` | `void`                    | Auto-grade an MCQ submission.             |
-| `programs()`     | `ProgramManagerService`   | Access core program management.           |
-| `enrolments()`   | `EnrolmentManagerService` | Access learner lifecycle methods.         |
-| `assessments()`  | `AssessmentService`       | Access quiz/exam engine.                  |
-| `analytics()`    | `AcademyAnalyticsService` | Access metrics and trends.                |
-| `discussions()`  | `DiscussionService`       | Access community threads.                 |
-| `liveSessions()` | `LiveSessionService`      | Manage Zoom/Meet sessions.                |
-| `ratings()`      | `RatingService`           | Access program reviews and ratings.       |
-| `badges()`       | `BadgeService`            | Manage learner achievements.              |
-| `landingPages()` | `LandingPageService`      | Manage SEO-optimized landing pages.       |
-| `reports()`      | `ReportingService`        | Access transcripts and detailed reports.  |
+| Method                | Returns                   | Description                               |
+| :-------------------- | :------------------------ | :---------------------------------------- |
+| `program()`           | `ProgramBuilder`          | Start a fluent program definition.        |
+| `enrol(...)`          | `AcademyEnrolment`        | Quick enrolment shortcut.                 |
+| `gradeQuiz(...)`      | `void`                    | Auto-grade an MCQ submission.             |
+| `programs()`          | `ProgramManagerService`   | Access core program management.           |
+| `enrolments()`        | `EnrolmentManagerService` | Access learner lifecycle methods.         |
+| `assessments()`       | `AssessmentService`       | Access quiz/exam engine.                  |
+| `analytics()`         | `AcademyAnalyticsService` | Access metrics and trends.                |
+| `discussions()`       | `DiscussionService`       | Access community threads.                 |
+| `liveSessions()`      | `LiveSessionService`      | Manage Zoom/Meet sessions.                |
+| `ratings()`           | `RatingService`           | Access program reviews and ratings.       |
+| `badges()`            | `BadgeService`            | Manage learner achievements.              |
+| `attendance()`        | `AttendanceService`       | Access polymorphic attendance tracking.   |
+| `landingPages()`      | `LandingPageService`      | Manage SEO-optimized landing pages.       |
+| `reports()`           | `ReportingService`        | Access transcripts and detailed reports.  |
+| `getDefaultCurrency()`| `string`                  | Get the configured currency (e.g. USD).   |
+| `getConfig(...)`      | `mixed`                   | Retrieve raw academy configuration.       |
 
 ### EnrolmentManagerService
 
@@ -865,17 +1117,23 @@ Academy is designed primarily as a **Self-Paced, Duration-Based** system.
 - `getRatingSummary(programId)`
 - `getHistory(metric, range)`
 
+### AttendanceService
+
+- `record(attendable, enrolmentId)`: Track entry/join event for any model.
+- `recordLeave(attendable, enrolmentId)`: Track exit/leave event and calculate duration.
+- `getAttendance(attendable)`: Fetch all records for an entity.
+
 ## Permissions & Authorization
 
 Academy provides granular authorization checks for various user roles.
 
-| Method | Role | Description |
-| :--- | :--- | :--- |
-| `canView(userId, programId)` | Learner/Instructor | Check if user can see program contents. |
-| `canAccess(userId, lessonId)` | Learner/Instructor | Check if user can take a specific lesson (Drip/Prereq). |
-| `canManage(userId, programId)` | Instructor | Check if user can edit or moderate a program. |
-| `canTake(userId, assessmentId)` | Learner/Instructor | Check if user can start an assessment. |
-| `canGrade(userId, submissionId)` | Instructor | Check if user can grade a specific submission. |
+| Method                        | Role               | Description                                           |
+| :---------------------------- | :----------------- | :---------------------------------------------------- |
+| `canView(userId, programId)`   | Learner/Instructor | Check if user can see program contents.               |
+| `canAccess(userId, lessonId)`  | Learner/Instructor | Check if user can take a specific lesson (Drip/Prereq). |
+| `canManage(userId, programId)` | Instructor         | Check if user can edit or moderate a program.         |
+| `canTake(userId, assessmentId)`| Learner/Instructor | Check if user can start an assessment.                |
+| `canGrade(userId, submissionId)`| Instructor        | Check if user can grade a specific submission.        |
 
 ### Usage Examples
 

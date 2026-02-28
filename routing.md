@@ -88,19 +88,51 @@ Route::view('login', 'Auth::login');
 // Absolute path: Render an arbitrary file directly
 Route::view('test', '/absolute/path/to/template.php');
 
-// RESTful Resource routes (Index, Create, Store, Show, Edit, Update, Destroy)
+### RESTful Resource Routes
+
+The `Route::resource` method registers all the necessary routes for a RESTful controller in a single line.
+
+```php
 Route::resource('photos', PhotoController::class);
 ```
 
-### Fallback Routing
+This single declaration creates multiple routes to handle various actions on the resource:
 
-You can define a catch-all route that will be executed when no other manual or convention-based route matches:
+| Verb      | URI                  | Action             | Route Name      |
+|-----------|----------------------|--------------------|-----------------|
+| GET       | `/photos`            | `index`            | `photos.index`  |
+| GET       | `/photos/create`     | `create`           | `photos.create` |
+| POST      | `/photos`            | `store`            | `photos.store`  |
+| GET       | `/photos/{id}`       | `show`             | `photos.show`   |
+| GET       | `/photos/{id}/edit`  | `edit`             | `photos.edit`   |
+| PUT/PATCH | `/photos/{id}`       | `update`           | `photos.update` |
+| DELETE    | `/photos/{id}`       | `destroy`          | `photos.destroy`|
+
+### Fallback Routes
+
+If you'd like to define a route that will be executed when no other route matches the incoming request, you may use the `Route::fallback` method. Typically, unhandled requests will automatically render a "404" page via your application's exception handler. However, since the fallback route is defined at the end of your routes, it allows you to define custom logic for missing pages.
 
 ```php
 Route::fallback(function () {
-    return view('errors.404');
+    // Custom logic...
 });
 ```
+
+For cases where you just want to render a specific view for missing pages, you can use the more convenient `fallbackView` method:
+
+```php
+Route::fallbackView('errors.404');
+
+// Fallback can also use module-based or absolute paths
+Route::fallbackView('Blog::errors.404');
+Route::fallbackView('/custom/views/error.php');
+```
+
+Just like `Route::view()`, the fallback version supports:
+
+- **Module Paths**: Use `Module::template` to render from a specific module.
+- **Absolute Paths**: Provide a full system path to bypass default template locations.
+- **Isolated Scope**: Templates are rendered in an isolated closure (via `->call($this)`) to prevent variable shadowing while maintaining access to the `$this` context.
 
 ### Route Grouping & Prefixes
 
@@ -108,8 +140,8 @@ Groups allow you to apply shared attributes like prefixes and middleware to mult
 
 ```php
 // Using attributes array
-Route::group(['prefix' => 'admin', 'middleware' => 'web'], function () {
-    Route::get('dashboard', [AdminController::class, 'index']);
+Route::group(['prefix' => 'admin', 'middleware' => 'web', 'as' => 'admin.'], function () {
+    Route::get('dashboard', [AdminController::class, 'index'])->name('index'); // admin.index
 });
 
 // Using fluent API
@@ -133,14 +165,18 @@ Route::get('user/profile/{username}', [AccountController::class, 'show'])
 
 // Generate URL: /user/profile/beniyke
 $url = route_url('profile.view', ['username' => 'beniyke']);
+
+// Generate URIs with query parameters
+$url = route_url('profile.view', ['username' => 'beniyke', 'ref' => 'docs']);
+// Result: /user/profile/beniyke?ref=docs
 ```
 
 ### Robust Middleware Support
 
-Middleware can be assigned as a group name, a single class name, or an array.
+Middleware can be assigned as a group name (defined in `config/middleware.php`), a single class name, or an array.
 
 ```php
-// Using a middleware group from config/middleware.php
+// Using a middleware group
 Route::middleware('web')->get('shop', [ShopController::class, 'index']);
 
 // Chaining multiple middlewares
@@ -174,28 +210,14 @@ Route::exclusive()->group(function() {
 
 In a multi-module environment, it is possible for different modules to define routes with identical names or URIs. Anchor resolves these conflicts as follows:
 
-- **Duplicate Names**: The **last registered** route for a given name wins. If `ModuleA` and `ModuleB` both define `->name('index')`, the one registered later (usually based on module loading order) will overwrite the first in the `route_url()` lookup.
+- **Duplicate Names**: The **last registered** route for a given name wins.
 - **Duplicate URIs**:
     - **Static Routes**: The last one registered for the same HTTP method and URI wins.
     - **Dynamic Routes**: The **first match** wins. If multiple dynamic patterns match the same URI, the router will execute the first one it finds in the registration order.
 
-#### Best Practice: Namespacing
-
-To avoid conflicts, follow these industry-standard patterns:
-
-- **Prefix Route Names**: Always prefix your names with the module name (e.g., `blog.post.show` instead of `post.show`).
-- **Use URI Groups**: Wrap your module's routes in a unique prefix to stay isolated from other modules:
-
-```php
-// In Blog/Route/map.php
-Route::group(['prefix' => 'blog', 'as' => 'blog.'], function() {
-    Route::get('posts', [PostController::class, 'index'])->name('index'); // Full name: blog.index, URI: /blog/posts
-});
-```
-
 ### Closure-Based Routes
 
-Routes can be handled directly by a Closure with automatic dependency injection.
+Routes can be handled directly by a Closure with automatic dependency injection from the container.
 
 ```php
 use Helpers\Http\Response;
@@ -206,29 +228,97 @@ Route::get('api/stats', function(AnalyticsService $service) {
 });
 ```
 
-#### Isolated View Rendering
-
-When using `Route::view()`, templates are rendered in an isolated scope. This prevents **variable shadowing**, meaning you can safely pass variables like `data` or `view_template` without colliding with the engine's internal logic.
-
 ### Fallback Behavior
 
 If a manual route is not matched, Anchor gracefully falls back to **Convention-Based Routing**. This ensures that existing auto-mapped routes continue to work alongside your manual definitions.
+
+---
+
+## Configuration-Based Routing
+
+While `Route::map()` is the primary way to define manual routes, some routing features are managed directly in `App/Config/route.php`.
+
+### Default Home Page
+
+Assign the root URI `/` to a specific module and controller:
+
+```php
+'default' => 'website/home', // Maps / to App\Website\Controllers\HomeController::index()
+```
+
+### Static Redirects
+
+Quickly alias paths to other URLs:
+
+```php
+'redirect' => [
+    'login' => 'auth/login',
+    'signup' => 'auth/signup',
+],
+```
+
+### Route Substitutions (Aliasing)
+
+Map a URL segment to a different module name. Useful for shortening URLs:
+
+```php
+'substitute' => [
+    'me' => 'account', // /me/settings maps to the 'Account' module
+],
+```
+
+### Global Named Routes
+
+Register names for convention-based routes that don't have a manual map:
+
+```php
+'names' => [
+    'home' => 'account/home',
+],
+```
+
+---
+
+## Auto-Security & Path Collections
+
+Anchor provides a unique "Auto-Security" feature for convention-based routes. You can define middleware protection for entire path categories in `App/Config/route.php`.
+
+### Path Collections Syntax
+
+Anchor supports a powerful curly-brace syntax for compact path definitions:
+
+- **Wildcards**: `auth/{*}` matches all sub-paths under `auth/`.
+- **Collections**: `auth/{login, signup, reset}` matches exactly those three sub-paths.
+
+### Example: Global Auth Enforcement
+
+```php
+// in App/Config/route.php
+return [
+    'auth' => [
+        'web' => ['account/{*}', 'admin/{*}'],
+    ],
+    'auth-exclude' => [
+        'web' => ['admin/login'], // Bypass auth for specifically /admin/login
+    ]
+];
+```
+
+---
+
+## Route Context
+
+Every resolved route is hydrated with "Context" metadata (Domain, Entity, Resource, Action). This powers smart features like automated validation, SEO titles, and audit logs.
+
+- **Learn more**: [Route Context Documentation](route-context.md)
 
 ## Performance & Optimization
 
 The routing system is designed for high performance:
 
-- **O(1) Static Lookup**: Static routes use an internal hash map for near-instant resolution regardless of the number of routes.
-- **Segment Pre-processing**: Route paths are pre-exploded during registration to minimize string operations during the request lifecycle.
-- **Lazy Resolution**: Controller instantiation and dependency injection only occur after a definitive match is found.
-
-## Advanced Configuration
-
-Explicit configuration can still be managed in `App/Config/route.php` for:
-
-- **Default Route**: Home page mapping.
-- **Redirects**: Simple internal path aliases.
-- **Named Routes**: Human-readable names for UI generation.
+- **O(1) Static Lookup**: Static routes use an internal hash map for near-instant resolution.
+- **Segment Pre-processing**: Route paths are pre-exploded during registration to avoid redundant string operations.
+- **Lazy Resolution**: Controller instantiation only occurs after a definitive match is found.
 
 ## CLI API Reference
 

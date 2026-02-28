@@ -99,7 +99,19 @@ $service = $container->make(MyService::class, [
 ]);
 ```
 
-## Automatic Dependency Injection
+## Optional Dependency Resolution
+
+The container can gracefully handle dependencies on interfaces that are not bound if they are marked as optional (nullable or have a default value):
+
+```php
+public function __construct(
+    private readonly ?TokenManagerInterface $tokens = null
+) {
+    // If TokenManagerInterface is not bound, $tokens will be null
+}
+```
+
+This ensures the framework remains robust even when optional packages or bridges are not installed.
 
 The container automatically resolves constructor dependencies:
 

@@ -24,11 +24,8 @@ Anchor provides comprehensive security features to protect your application agai
 - HTTPS enabled (`APP_SECURE=true`)
 - Debug mode disabled (`APP_DEBUG=false`)
 - CSRF protection enabled in `App/Config/default.php`
-- Security headers middleware enabled in `App/Config/middleware.php`
-- Strong password policies enforced in `App/Requests`
-- File upload validation implemented using `moveSecurely()`
-- Database credentials secured in `.env`
-- Firewall thresholds set appropriately in `App/Config/firewall.php`
+- Firewall thresholds set appropriately in `App/Config/firewall.php` (Automatically integrated)
+- Security headers middleware enabled (Add to `App/Config/middleware.php` if not using system defaults)
 
 ### Code Security
 

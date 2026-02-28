@@ -6,7 +6,7 @@ The `tests/` directory must strictly mirror the framework source. Every director
 
 ### Structure
 
-```
+```text
 tests/
 ├── App/                          # Application-specific tests
 │   ├── Unit/
@@ -90,6 +90,9 @@ beforeEach(function () {
 
 Use the `Tests\System\Fixtures\` namespace for test-only models:
 
+```bash
+php dock test:create MyFeature Module --feature
+```
 ```php
 // tests/System/Fixtures/Models/TestUser.php
 namespace Tests\System\Fixtures\Models;
@@ -451,15 +454,22 @@ arch('Wallet unit tests use WalletFake')
 
 ### Available Fakes
 
-| Fake               | Purpose            | Key Methods                                             |
-| ------------------ | ------------------ | ------------------------------------------------------- |
-| `HttpFake`         | Mock outgoing HTTP | `fake()`, `assertSent()`, `assertNotSent()`             |
-| `MailFake`         | Mock email sending | `assertSent()`, `assertQueued()`, `assertNothingSent()` |
-| `QueueFake`        | Mock job dispatch  | `assertPushed()`, `assertPushedOn()`                    |
-| `EventFake`        | Mock events        | `assertDispatched()`, `assertNotDispatched()`           |
-| `CacheFake`        | Mock cache         | `assertHas()`, `assertMissing()`                        |
-| `NotificationFake` | Mock notifications | `assertSentTo()`, `assertNotSentTo()`                   |
-| `StorageFake`      | Mock file storage  | `assertExists()`, `assertMissing()`                     |
+| Fake               | Purpose                   | Key Methods                                             |
+| ------------------ | ------------------------- | ------------------------------------------------------- |
+| `AuditFake`        | Mock audit logging        | `assertLogged()`, `assertNothingLogged()`               |
+| `AuthFake`         | Mock authentication state | `actingAs()`, `assertAuthenticated()`, `assertGuest()` |
+| `CacheFake`        | Mock cache                | `assertHas()`, `assertMissing()`                        |
+| `DeferFake`        | Mock deferred tasks       | `assertDeferred()`, `assertNothingDeferred()`          |
+| `EventFake`        | Mock events               | `assertDispatched()`, `assertNotDispatched()`           |
+| `HttpFake`         | Mock outgoing HTTP        | `fake()`, `assertSent()`, `assertNotSent()`             |
+| `LogFake`          | Mock system logging       | `assertLogged()`, `assertNothingLogged()`               |
+| `MailFake`         | Mock email sending        | `assertSent()`, `assertQueued()`, `assertNothingSent()` |
+| `NotificationFake` | Mock notifications        | `assertSentTo()`, `assertNotSentTo()`                   |
+| `QueueFake`        | Mock job dispatch         | `assertPushed()`, `assertPushedOn()`                    |
+| `RequestFake`      | Mock HTTP requests        | `assertHasHeader()`, `assertHasInput()`                 |
+| `ScheduleFake`     | Mock task schedules       | `assertRun()`, `assertNotRun()`                        |
+| `SessionFake`      | Mock session data         | `assertHas()`, `assertMissing()`                        |
+| `StorageFake`      | Mock file storage         | `assertExists()`, `assertMissing()`                     |
 
 ### Usage Examples
 
@@ -566,9 +576,9 @@ Every test file must adhere to these contracts:
 
 ### File-Level Requirements
 
-- **Declare Strict Types:** `declare(strict_types=1);` at file top
-- **Use Describe Blocks:** Group related tests with `describe()` for clarity
-- **Self-Documenting Names:** Test names must describe behavior, not implementation
+-   **Declare Strict Types:** `declare(strict_types=1);` at file top
+-   **Use Describe Blocks:** Group related tests with `describe()` for clarity
+-   **Self-Documenting Names:** Test names must describe behavior, not implementation
 
 ### Test-Level Requirements
 

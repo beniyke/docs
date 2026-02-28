@@ -40,8 +40,6 @@ Anchor encourages a **service-first architecture**. Business logic should live i
 ```php
 namespace App\Auth\Controllers;
 
-use App\Services\Auth\WebAuthService;
-use App\Validations\Form\LoginFormRequestValidation;
 use App\Auth\Views\Models\LoginViewModel;
 use App\Core\BaseController;
 use Helpers\Http\Response;
@@ -53,21 +51,18 @@ class LoginController extends BaseController
         return $this->asView('login', compact('login_view_model'));
     }
 
-    public function attempt(LoginFormRequestValidation $validator): Response
+    public function attempt(): Response
     {
         if (!$this->request->isPost()) {
             return $this->response->redirect($this->request->fullRoute());
         }
 
-        $validator->validate($this->request->post());
+        // 1. Smart Validation has already run. Retrieve the validated result.
+        $login = $this->auth->login($this->request->validated());
 
-        if ($validator->has_error()) {
-            $this->flash->error($validator->errors());
-            return $this->response->redirect($this->request->fullRoute());
-        }
-
-        // Delegate to service
-        if (!$this->auth->login($validator->getRequest())) {
+        // 2. Check login status via AuthResult
+        if (!$login->isSuccessful()) {
+            $this->flash->error($login->getMessage() ?? 'Invalid login credentials.');
             return $this->response->redirect($this->request->fullRoute());
         }
 
@@ -77,6 +72,11 @@ class LoginController extends BaseController
     private function handleLoginRedirect(): Response
     {
         $redirect_to = $this->request->fullRouteByName('home');
+
+        if (!$this->request->isLoginRoute()) {
+            $redirect_to = $this->request->callback();
+        }
+
         return $this->response->redirect($redirect_to);
     }
 }
@@ -260,20 +260,21 @@ use Helpers\Http\Response;
 
 class LoginController extends BaseController
 {
-    public function authenticate(
-        LoginFormRequestValidation $validator,
-        UserService $userService
-    ): Response {
-        // Delegate logic to the service
-        $user = $userService->confirmUser($validator->validated()->data());
+    public function authenticate(UserService $userService): Response
+    {
+        // 1. Smart Validation has already run. Retrieve the validated DTO.
+        $request = $this->request->validated();
 
-   if (!$user) {
-       $this->flash->error('Invalid credentials');
-       return $this->response->redirect($this->request->fullRoute('auth/login'));
-   }
+        // 2. Delegate logic to the service
+        $user = $userService->confirmUser($request->toArray());
 
-   // Login successful...
-}
+        if (!$user) {
+            $this->flash->error('Invalid credentials');
+            return $this->response->redirect($this->request->fullRoute('auth/login'));
+        }
+
+        // Login successful...
+    }
 ```
 
 ## Repository Pattern (Optional)
@@ -313,7 +314,7 @@ Use validation classes to validate requests:
 ```php
 namespace App\Auth\Validations\Form;
 
-use App\Core\BaseRequestValidation;
+use Core\BaseRequestValidation;
 
 class LoginFormRequestValidation extends BaseRequestValidation
 {
